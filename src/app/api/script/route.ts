@@ -28,10 +28,25 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Script generation error:', error);
+    
+    // Handle sensitive character detection
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    if (errorMessage.includes('SENSITIVE_CHARACTER_DETECTED')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Sensitive character detected. Please avoid using religious figures, political leaders, terrorists, or other controversial figures in your request.',
+          code: 'SENSITIVE_CHARACTER'
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+        error: errorMessage 
       },
       { status: 500 }
     );
