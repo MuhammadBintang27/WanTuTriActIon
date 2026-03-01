@@ -37,6 +37,7 @@ interface SceneWithImage extends Scene {
 }
 
 type UILanguage = 'en' | 'id' | 'zh';
+type WorkflowStep = 1 | 2 | 3 | 4; // 1: Enter Idea, 2: Generate Script, 3: Review Scene, 4: Generate Video
 
 const translations = {
   en: {
@@ -71,12 +72,14 @@ const translations = {
     createNew: 'Create New Drama',
     howItWorks: 'How It Works',
     howItWorksDesc: 'Three simple steps to create your marketing drama',
-    step1Title: 'Describe Your Idea',
-    step1Desc: 'Tell us about the product or concept you want to promote. AI will understand and develop the story.',
+    step1Title: 'Enter Idea',
     step2Title: 'Generate Script',
+    step3Title: 'Review Scene',
+    step4Title: 'Generate Video',
+    step1Desc: 'Tell us about the product or concept you want to promote. AI will understand and develop the story.',
     step2Desc: 'AI creates a 3-scene drama script with problem, climax, and resolution structure.',
-    step3Title: 'Build Your Video',
-    step3Desc: 'Generate images and videos aligned with action and dialogue for stunning results.',
+    step3Desc: 'Review and edit scenes, characters, actions, and dialogues before generating images.',
+    step4Desc: 'Generate images and videos aligned with action and dialogue for stunning results.',
     aboutUs: 'About Us',
     aboutDesc: 'WanTuTri AI is an AI-powered video marketing creation platform that combines Qwen LLM and Wan AI technology from Alibaba Cloud. We help businesses and creators create entertaining and effective drama video content for product promotion.',
     contactUs: 'Contact Us',
@@ -117,12 +120,14 @@ const translations = {
     createNew: 'Buat Drama Baru',
     howItWorks: 'Cara Kerja',
     howItWorksDesc: 'Tiga langkah mudah untuk membuat drama marketing Anda',
-    step1Title: 'Deskripsikan Ide',
-    step1Desc: 'Ceritakan produk atau konsep yang ingin dipromosikan. AI akan memahami dan mengembangkan cerita.',
+    step1Title: 'Masukkan Ide',
     step2Title: 'Generate Naskah',
+    step3Title: 'Review Adegan',
+    step4Title: 'Generate Video',
+    step1Desc: 'Ceritakan produk atau konsep yang ingin dipromosikan. AI akan memahami dan mengembangkan cerita.',
     step2Desc: 'AI membuat naskah drama 3 adegan dengan struktur masalah, puncak, dan solusi.',
-    step3Title: 'Bangun Video',
-    step3Desc: 'Generate gambar dan video yang selaras dengan aksi dan dialog untuk hasil yang memukau.',
+    step3Desc: 'Review dan edit adegan, karakter, aksi, dan dialog sebelum generate gambar.',
+    step4Desc: 'Generate gambar dan video yang selaras dengan aksi dan dialog untuk hasil yang memukau.',
     aboutUs: 'Tentang Kami',
     aboutDesc: 'WanTuTri AI adalah platform pembuatan video marketing berbasis AI yang menggabungkan teknologi Qwen LLM dan Wan AI dari Alibaba Cloud. Kami membantu bisnis dan kreator membuat konten video drama yang menghibur dan efektif untuk promosi produk.',
     contactUs: 'Hubungi Kami',
@@ -163,12 +168,14 @@ const translations = {
     createNew: '创作新短剧',
     howItWorks: '工作原理',
     howItWorksDesc: '三个简单步骤创建您的营销短剧',
-    step1Title: '描述您的创意',
-    step1Desc: '告诉我们您想推广的产品或概念。AI将理解并发展故事。',
+    step1Title: '输入创意',
     step2Title: '生成脚本',
+    step3Title: '审核场景',
+    step4Title: '生成视频',
+    step1Desc: '告诉我们您想推广的产品或概念。AI将理解并发展故事。',
     step2Desc: 'AI创建具有问题、高潮和解决结构的三场景短剧脚本。',
-    step3Title: '制作视频',
-    step3Desc: '生成与动作和对话对齐的图片和视频，获得惊艳效果。',
+    step3Desc: '审核和编辑场景、角色、动作和对话，然后生成图片。',
+    step4Desc: '生成与动作和对话对齐的图片和视频，获得惊艳效果。',
     aboutUs: '关于我们',
     aboutDesc: 'WanTuTri AI是一个AI驱动的视频营销创作平台，结合了阿里巴巴云的Qwen LLM和Wan AI技术。我们帮助企业和创作者创建娱乐性和有效的短剧视频内容来推广产品。',
     contactUs: '联系我们',
@@ -193,6 +200,9 @@ export default function Home() {
   const [uiLang, setUiLang] = useState<UILanguage>('en');
   const [promptLang, setPromptLang] = useState<'id' | 'en'>('en');
   const [showScriptOutput, setShowScriptOutput] = useState(false);
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
+  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([1])); // Step 1 expanded by default
+  const [viewingImage, setViewingImage] = useState<string | null>(null); // For image viewer modal
   
   const t = translations[uiLang];
   
@@ -273,6 +283,8 @@ export default function Home() {
 
       setScenes(result.data.scenes);
       setStage('script_review');
+      setCurrentStep(2);
+      setExpandedSteps(new Set([2]));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setStage('error');
@@ -318,6 +330,52 @@ export default function Home() {
     ));
   };
 
+  // Step management
+  const goToStep = (step: WorkflowStep) => {
+    // Expand the clicked step and collapse others, don't change currentStep (progress status)
+    // This allows users to view/edit previous steps without losing progress
+    setExpandedSteps(new Set([step]));
+    
+    // Also update the stage to show the correct section content
+    if (step === 1) {
+      // Step 1: Enter Idea - just expand/collapse the input section
+    } else if (step === 2) {
+      // Step 2: Generate Script - show script review
+      if (scenes.length > 0) {
+        setStage('script_review');
+        setShowScriptOutput(true);
+      }
+    } else if (step === 3) {
+      // Step 3: Review Scene - show image review if images exist, otherwise script review
+      if (scenes.some(s => s.imageUrl)) {
+        setStage('image_review');
+      } else if (scenes.length > 0) {
+        setStage('script_review');
+      }
+      setShowScriptOutput(true);
+    } else if (step === 4) {
+      // Step 4: Generate Video - show video/completed if videos exist
+      if (videoUrls.length > 0) {
+        setStage('completed');
+      } else if (scenes.some(s => s.imageUrl)) {
+        setStage('image_review');
+      }
+      setShowScriptOutput(true);
+    }
+  };
+
+  const toggleStepExpansion = (step: number) => {
+    setExpandedSteps(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(step)) {
+        newSet.delete(step);
+      } else {
+        newSet.add(step);
+      }
+      return newSet;
+    });
+  };
+
   // Step 2: Generate Images for all scenes
   const handleGenerateAllImages = async () => {
     setIsGeneratingImages(true);
@@ -356,6 +414,8 @@ export default function Home() {
         imageUrl: imageUrls.find((img: { sceneIndex: number; url: string }) => img.sceneIndex === i)?.url,
       })));
       setStage('image_review');
+      setCurrentStep(3);
+      setExpandedSteps(new Set([3]));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setStage('error');
@@ -451,6 +511,8 @@ export default function Home() {
       setVideoUrls(result.data.videoUrls);
       setCurrentVideoIndex(0);
       setStage('completed');
+      setCurrentStep(4);
+      setExpandedSteps(new Set([4]));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setStage('error');
@@ -585,14 +647,44 @@ export default function Home() {
             </p>
           </motion.div>
 
-          {/* Input Bar */}
+          {/* Step 1: Enter Idea - Collapsible */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
           >
-            <div className="p-6">
+            {/* Step 1 Header - Always visible, clickable to expand/collapse */}
+            <button
+              onClick={() => toggleStepExpansion(1)}
+              className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+                  currentStep > 1 ? 'bg-green-500 text-white' : 
+                  currentStep === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                )}>
+                  {currentStep > 1 ? <CheckCircle2 className="w-6 h-6" /> : 1}
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900">{t.step1Title}</h3>
+                  <p className="text-sm text-gray-500">{t.step1Desc}</p>
+                </div>
+              </div>
+              {expandedSteps.has(1) ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+            </button>
+            
+            {/* Step 1 Content - Collapsible */}
+            <AnimatePresence>
+              {expandedSteps.has(1) && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-6 pb-6">
               <div className="flex gap-4">
                 {/* Image Upload Button */}
                 <input
@@ -680,14 +772,115 @@ export default function Home() {
 
               {/* Use Your Own Script Toggle */}
               <button
-                onClick={() => setShowScriptOutput(!showScriptOutput)}
+                onClick={() => {
+                  // If no scenes exist, create empty template scenes for manual editing
+                  if (scenes.length === 0) {
+                    setScenes([
+                      {
+                        scene_number: 1,
+                        scene_type: 'problem',
+                        title: '',
+                        visual_description: '',
+                        action: '',
+                        dialogue: '',
+                        characters: [{ name: '', visual_description: '' }],
+                        imageUrl: undefined,
+                      },
+                      {
+                        scene_number: 2,
+                        scene_type: 'climax',
+                        title: '',
+                        visual_description: '',
+                        action: '',
+                        dialogue: '',
+                        characters: [{ name: '', visual_description: '' }],
+                        imageUrl: undefined,
+                      },
+                      {
+                        scene_number: 3,
+                        scene_type: 'resolution',
+                        title: '',
+                        visual_description: '',
+                        action: '',
+                        dialogue: '',
+                        characters: [{ name: '', visual_description: '' }],
+                        imageUrl: undefined,
+                      },
+                    ]);
+                    setStage('script_review');
+                    setCurrentStep(2);
+                    setExpandedSteps(new Set([2]));
+                  }
+                  setShowScriptOutput(!showScriptOutput);
+                }}
                 className="mt-4 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
                 {t.useOwnScript}
                 {showScriptOutput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
+                  </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
+
+          {/* 4-Step Workflow Timeline */}
+          {(currentStep > 1 || scenes.length > 0) && (
+            <div className="mt-8 mb-8">
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    {[
+                      { step: 1, label: t.step1Title, icon: Lightbulb },
+                      { step: 2, label: t.step2Title, icon: FileText },
+                      { step: 3, label: t.step3Title, icon: ImageIcon },
+                      { step: 4, label: t.step4Title, icon: Film },
+                    ].map((s, index) => {
+                      const Icon = s.icon;
+                      const isExpanded = expandedSteps.has(s.step);
+                      const isCompleted = currentStep > s.step;
+                      const isCurrent = currentStep === s.step;
+                      const isClickable = s.step <= currentStep;
+                      
+                      return (
+                        <div key={s.step} className="flex items-center flex-1">
+                          <button
+                            onClick={() => isClickable && goToStep(s.step as WorkflowStep)}
+                            disabled={!isClickable}
+                            className={cn(
+                              'flex items-center gap-3 px-4 py-3 rounded-xl transition-all flex-1 justify-center',
+                              isCompleted ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                              isCurrent && isExpanded ? 'bg-blue-600 text-white shadow-lg' :
+                              isExpanded ? 'bg-blue-100 text-blue-700' :
+                              isCurrent ? 'bg-blue-50 text-blue-600 border-2 border-blue-200' :
+                              'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            )}
+                          >
+                            <div className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
+                              isCompleted ? 'bg-green-500 text-white' :
+                              isCurrent && isExpanded ? 'bg-white text-blue-600' :
+                              isCurrent ? 'bg-blue-600 text-white' :
+                              'bg-gray-300 text-gray-500'
+                            )}>
+                              {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : s.step}
+                            </div>
+                            <span className="font-medium text-sm">{s.label}</span>
+                          </button>
+                          {index < 3 && (
+                            <div className={cn(
+                              'w-8 h-0.5 mx-2',
+                              isCompleted ? 'bg-green-400' : 'bg-gray-200'
+                            )} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Generated Script Output */}
           <AnimatePresence>
@@ -696,47 +889,8 @@ export default function Home() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-8 space-y-6"
+                className="space-y-6"
               >
-                {/* Progress Indicator */}
-                {stage !== 'idle' && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex items-center justify-between">
-                      {[
-                        { id: 'script', label: t.script, icon: FileText },
-                        { id: 'images', label: t.images, icon: ImageIcon },
-                        { id: 'video', label: t.video, icon: Play },
-                      ].map((s, index) => {
-                        const Icon = s.icon;
-                        const isActive = 
-                          (s.id === 'script' && (stage === 'scripting' || stage === 'script_review')) ||
-                          (s.id === 'images' && (stage === 'image_generation' || stage === 'image_review')) ||
-                          (s.id === 'video' && (stage === 'video_generation' || stage === 'completed'));
-                        const isCompleted = 
-                          (s.id === 'script' && (stage === 'image_generation' || stage === 'image_review' || stage === 'video_generation' || stage === 'completed')) ||
-                          (s.id === 'images' && (stage === 'video_generation' || stage === 'completed')) ||
-                          (s.id === 'video' && stage === 'completed');
-                        
-                        return (
-                          <div key={s.id} className="flex items-center">
-                            <div className={cn(
-                              'flex items-center gap-2 px-4 py-2 rounded-full transition-colors',
-                              isCompleted ? 'bg-green-100 text-green-700' :
-                              isActive ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-400'
-                            )}>
-                              <Icon className="w-4 h-4" />
-                              <span className="text-sm font-medium">{s.label}</span>
-                            </div>
-                            {index < 2 && (
-                              <ChevronRight className="w-5 h-5 text-gray-300 mx-2" />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
                 {/* Script Review Section */}
                 {stage === 'script_review' && (
@@ -912,15 +1066,13 @@ export default function Home() {
                           </div>
                           {scene.imageUrl && (
                             <div className="flex items-center gap-2">
-                              <a
-                                href={scene.imageUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => setViewingImage(scene.imageUrl!)}
                                 className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title={t.view}
                               >
                                 <Eye className="w-5 h-5" />
-                              </a>
+                              </button>
                               <a
                                 href={scene.imageUrl}
                                 download
@@ -1135,6 +1287,42 @@ export default function Home() {
                     </div>
                   </motion.div>
                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Image Viewer Modal */}
+          <AnimatePresence>
+            {viewingImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                onClick={() => setViewingImage(null)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="relative max-w-4xl max-h-[90vh] w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Close button */}
+                  <button
+                    onClick={() => setViewingImage(null)}
+                    className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
+                  
+                  {/* Image */}
+                  <img
+                    src={viewingImage}
+                    alt="View"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>

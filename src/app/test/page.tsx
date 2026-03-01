@@ -25,7 +25,7 @@ export default function TestPage() {
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [stage, setStage] = useState<'idle' | 'scripting' | 'image' | 'video' | 'completed' | 'error'>('idle');
+  const [stage, setStage] = useState<'idle' | 'scripting' | 'script_review' | 'image' | 'image_review' | 'video' | 'completed' | 'error'>('idle');
   const [scene, setScene] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -63,8 +63,8 @@ export default function TestPage() {
     }
   };
 
-  // Generate single scene
-  const handleGenerate = async () => {
+  // Step 1: Generate Script only
+  const handleGenerateScript = async () => {
     if (!prompt.trim()) {
       setError('Please enter a description');
       return;
@@ -75,7 +75,6 @@ export default function TestPage() {
     setStage('scripting');
 
     try {
-      // Step 1: Generate Script
       const lang = detectLanguage(prompt);
       const scriptResponse = await fetch('/api/script', {
         method: 'POST',
@@ -97,19 +96,33 @@ export default function TestPage() {
       }
 
       // Use first scene only
-      const firstScene = scriptResult.data.scenes[0];
-      setScene(firstScene);
+      setScene(scriptResult.data.scenes[0]);
+      setStage('script_review'); // Show script result, wait for user to click Next
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setStage('error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
-      // Step 2: Generate Image
-      setStage('image');
+  // Step 2: Generate Image only
+  const handleGenerateImage = async () => {
+    if (!scene) return;
+
+    setIsGenerating(true);
+    setError(null);
+    setStage('image');
+
+    try {
       const imageResponse = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scenes: [{
-            visualDescription: firstScene.visual_description,
-            action: firstScene.action,
-            characters: firstScene.characters,
+            visualDescription: scene.visual_description,
+            action: scene.action,
+            characters: scene.characters,
             sceneIndex: 0
           }],
           referenceImage: uploadedImage,
@@ -127,19 +140,34 @@ export default function TestPage() {
       }
 
       setImageUrl(imageResult.data.imageUrl);
+      setStage('image_review'); // Show image result, wait for user to click Next
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setStage('error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
-      // Step 3: Generate Video
-      setStage('video');
+  // Step 3: Generate Video only
+  const handleGenerateVideo = async () => {
+    if (!scene || !imageUrl) return;
+
+    setIsGenerating(true);
+    setError(null);
+    setStage('video');
+
+    try {
       const videoResponse = await fetch('/api/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scenes: [{
-            imageUrl: imageResult.data.imageUrl,
-            action: firstScene.action,
-            dialogue: firstScene.dialogue
+            imageUrl: imageUrl,
+            action: scene.action,
+            dialogue: scene.dialogue
           }],
-          referenceImage: uploadedImage, // Pass reference image for visual consistency
+          referenceImage: uploadedImage,
         }),
       });
 
@@ -241,19 +269,19 @@ export default function TestPage() {
               )}
 
               <button
-                onClick={handleGenerate}
+                onClick={handleGenerateScript}
                 disabled={isGenerating || !prompt.trim()}
                 className="w-full py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating...
+                    Generating Script...
                   </>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    Generate (Scene → Image → Video)
+                    Step 1: Generate Script
                   </>
                 )}
               </button>
@@ -274,14 +302,14 @@ export default function TestPage() {
           </div>
         )}
 
-        {/* Results */}
-        {stage === 'completed' && scene && (
+        {/* Step 2: Script Review with Next Button */}
+        {(stage === 'script_review' || stage === 'image' || stage === 'image_review' || stage === 'video' || stage === 'completed') && scene && (
           <div className="space-y-6">
             {/* Scene Info */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-blue-600" />
-                Generated Scene
+                Step 1: Generated Scene
               </h3>
               <div className="space-y-3">
                 <p><span className="font-medium">Title:</span> {scene.title}</p>
@@ -289,28 +317,70 @@ export default function TestPage() {
                 <p><span className="font-medium">Action:</span> {scene.action}</p>
                 <p><span className="font-medium">Dialogue:</span> {scene.dialogue}</p>
               </div>
+              
+              {/* Next Button to Generate Image */}
+              {stage === 'script_review' && (
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGenerating}
+                  className="mt-6 w-full py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Generating Image...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-5 h-5" />
+                      Step 2: Generate Image
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* Image */}
-            {imageUrl && (
+            {/* Step 3: Image Result with Next Button */}
+            {(stage === 'image_review' || stage === 'video' || stage === 'completed') && imageUrl && (
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                 <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-blue-600" />
-                  Generated Image
+                  Step 2: Generated Image
                 </h3>
                 <div className="aspect-[9/16] max-w-[400px] mx-auto rounded-xl overflow-hidden">
                   <img src={imageUrl} alt="Generated" className="w-full h-full object-cover" />
                 </div>
+                
+                {/* Next Button to Generate Video */}
+                {stage === 'image_review' && (
+                  <button
+                    onClick={handleGenerateVideo}
+                    disabled={isGenerating}
+                    className="mt-6 w-full py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 flex items-center justify-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Generating Video...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5" />
+                        Step 3: Generate Video
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Video */}
-            {videoUrl && (
+            {/* Step 4: Video Result */}
+            {stage === 'completed' && videoUrl && (
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    Generated Video
+                    Step 3: Generated Video
                   </h3>
                   <a
                     href={videoUrl}
@@ -327,13 +397,15 @@ export default function TestPage() {
               </div>
             )}
 
-            <button
-              onClick={reset}
-              className="w-full py-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
-            >
-              <Wand2 className="w-5 h-5" />
-              Test Again
-            </button>
+            {(stage === 'completed') && (
+              <button
+                onClick={reset}
+                className="w-full py-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
+              >
+                <Wand2 className="w-5 h-5" />
+                Test Again
+              </button>
+            )}
           </div>
         )}
       </div>

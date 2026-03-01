@@ -59,6 +59,17 @@ function getSystemPrompt(language: 'id' | 'en'): string {
   const basePrompt = language === 'id' 
     ? `Anda adalah penulis naskah drama komedi Cina profesional yang ahli dalam marketing. Buat naskah drama komedi 3 adegan untuk promosi produk/bisnis.
 
+KEBIJAKAN KARAKTER (WAJIB DIPATUHI):
+1. Jika user meminta karakter tokoh publik (selebritis, influencer, figur terkenal):
+   - BUAT visual description dengan fitur wajah 1:1 mirip aslinya
+   - Deskripsikan detail wajah, gaya rambut, pakaian khas, dan ekspresi khas mereka
+   
+2. Jika user meminta karakter SENSITIF (tokoh agama, presiden/kepala negara, teroris, atau figur kontroversial):
+   - TOLAK PEMBUATAN dengan alasan "Karakter sensitif terdeteksi"
+   - Kembalikan JSON dengan error message, BUKAN scene
+
+3. Karakter fiksi/original: Buat dengan deskripsi visual lengkap dan unik
+
 STRUKTUR WAJIB (3 ADEGAN):
 1. ADEGAN 1 - ORIENTASI MASALAH: Perkenalkan karakter dalam situasi lucu yang menunjukkan masalah/masalah sehari-hari
 2. ADEGAN 2 - PUNCAK MASALAH: Konflik memuncak dengan cara yang dramatis dan lucu
@@ -68,6 +79,17 @@ GAYA: Drama Cina yang over-the-top, ekspresif, lucu, dengan plot twist yang mena
 
 Penting: Respons HARUS dalam format JSON yang valid:`
     : `You are a professional Chinese comedy drama scriptwriter who is an expert in marketing. Create a 3-scene comedy drama script for product/business promotion.
+
+CHARACTER POLICY (MUST FOLLOW):
+1. If user requests a PUBLIC FIGURE character (celebrity, influencer, famous personality):
+   - CREATE visual description with 1:1 face accuracy to real life
+   - Describe facial features, hairstyle, signature clothing, and characteristic expressions in detail
+   
+2. If user requests a SENSITIVE character (religious figures, presidents/head of state, terrorists, or controversial figures):
+   - DECLINE GENERATION with reason "Sensitive character detected"
+   - Return JSON with error message, NOT scenes
+
+3. Fictional/original characters: Create with complete and unique visual descriptions
 
 REQUIRED STRUCTURE (3 SCENES):
 1. SCENE 1 - PROBLEM ORIENTATION: Introduce character in a funny situation showing everyday problem
@@ -84,7 +106,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 1,
       "scene_type": "problem",
       "title": "Scene title describing the situation",
-      "visual_description": "Detailed visual description for image generation - 9:16 portrait format for TikTok/Reels",
+      "visual_description": "Describe the scene setting, environment, mood, and what's happening. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
       "action": "Physical action/movement of characters",
       "dialogue": "Character dialogue with emotion markers",
       "characters": [
@@ -98,7 +120,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 2,
       "scene_type": "climax",
       "title": "Scene title",
-      "visual_description": "Detailed visual description - 9:16 portrait format for TikTok/Reels",
+      "visual_description": "Describe the scene setting, environment, mood, and dramatic moment. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
       "action": "Physical action/movement",
       "dialogue": "Character dialogue",
       "characters": [...]
@@ -107,7 +129,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 3,
       "scene_type": "resolution",
       "title": "Scene title with product promotion",
-      "visual_description": "Detailed visual description showing product prominently - 9:16 portrait format for TikTok/Reels",
+      "visual_description": "Describe the scene setting, product placement, mood, and resolution. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
       "action": "Physical action showing product usage",
       "dialogue": "Promotional dialogue with call-to-action",
       "characters": [...]
@@ -123,7 +145,8 @@ Instruksi Penting:
 - Setiap adegan harus memiliki minimal 1 karakter dengan deskripsi visual lengkap
 - Dialog harus emosional dan ekspresif
 - Produk/bisnis harus dipromosikan di adegan 3 dengan jelas
-- Gunakan bahasa Indonesia yang natural dan engaging`
+- Gunakan bahasa Indonesia yang natural dan engaging
+- KAMERA: Gunakan sudut kamera DSLR realistis, seperti diambil oleh fotografer profesional dengan kamera Canon/Nikon. Hindari sudut kamera yang terlalu sempurna atau "terlalu AI". Gunakan sudut mata manusia normal, sedikit shake natural, pencahayaan alami seperti golden hour atau studio lighting profesional. 100% realistis seperti kehidupan nyata.`
     : `
 Important Instructions:
 - Video format: 9:16 portrait for TikTok/Reels (not landscape)
@@ -131,7 +154,8 @@ Important Instructions:
 - Each scene must have at least 1 character with complete visual description
 - Dialogue should be emotional and expressive
 - Product/business must be promoted clearly in scene 3
-- Use natural and engaging English`;
+- Use natural and engaging English
+- CAMERA: Use realistic DSLR camera angles, like shot by a professional photographer with Canon/Nikon camera. Avoid overly perfect or "too AI" camera angles. Use normal human eye level angles, slight natural shake, natural lighting like golden hour or professional studio lighting. 100% realistic like real life photography.`;
 
   return basePrompt + '\n\n' + jsonStructure + '\n' + instructions;
 }
@@ -171,7 +195,16 @@ function parseScriptResponse(content: string): Scene[] {
       throw new Error('No JSON found in response');
     }
     
-    const parsed: QwenScriptResponse = JSON.parse(jsonMatch[0]);
+    const parsed: QwenScriptResponse & { error?: string; message?: string } = JSON.parse(jsonMatch[0]);
+    
+    // Check for sensitive character error
+    if (parsed.error || parsed.message) {
+      const errorMsg = parsed.error || parsed.message || '';
+      if (errorMsg.toLowerCase().includes('sensitive') || 
+          errorMsg.toLowerCase().includes('karakter sensitif')) {
+        throw new Error(`SENSITIVE_CHARACTER_DETECTED: ${errorMsg}`);
+      }
+    }
     
     if (!parsed.scenes || !Array.isArray(parsed.scenes) || parsed.scenes.length !== 3) {
       throw new Error('Invalid script structure: expected exactly 3 scenes (problem, climax, resolution)');
@@ -199,6 +232,10 @@ function parseScriptResponse(content: string): Scene[] {
     return parsed.scenes;
   } catch (error) {
     console.error('Failed to parse script response:', error);
+    // Re-throw the original error if it's already a sensitive character error
+    if (error instanceof Error && error.message.includes('SENSITIVE_CHARACTER_DETECTED')) {
+      throw error;
+    }
     throw new Error('Failed to parse script from Qwen API response');
   }
 }
