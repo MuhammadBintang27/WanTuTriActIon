@@ -57,11 +57,17 @@ export function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      resolve(result.split(',')[1]);
+      // Return full data URL for browser display (data:image/...;base64,...)
+      resolve(result);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// Helper to extract just base64 string (without data URL prefix) for API calls
+export function getBase64String(dataUrl: string): string {
+  return dataUrl.split(',')[1] || dataUrl;
 }
 
 export function base64ToFile(base64: string, filename: string, mimeType: string): File {
