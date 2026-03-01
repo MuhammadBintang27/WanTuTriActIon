@@ -79,14 +79,14 @@ export function VideoPlayer({ videoUrl, className, onEnded }: VideoPlayerProps) 
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
       className={cn(
-        'relative bg-black rounded-2xl overflow-hidden shadow-2xl',
+        'relative bg-black rounded-2xl overflow-hidden shadow-2xl w-full',
         className
       )}
     >
       <video
         ref={videoRef}
         src={videoUrl}
-        className="w-full aspect-[9/16] object-cover max-h-[80vh] mx-auto"
+        className="w-full aspect-[9/16] object-contain"
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
         playsInline

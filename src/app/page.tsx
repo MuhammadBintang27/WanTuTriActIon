@@ -1,35 +1,18 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Upload, 
-  X, 
-  Sparkles, 
-  AlertCircle,
-  CheckCircle2,
-  Wand2,
-  Image as ImageIcon,
-  RefreshCw,
-  Play,
-  FileText,
-  ChevronRight,
-  Loader2,
-  Plus,
-  Trash2,
-  Users,
-  Send,
-  Lightbulb,
-  PenTool,
-  Film,
-  Download,
-  Eye,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
+import HeroSection from '@/components/HeroSection';
+import BrandingBar from '@/components/BrandingBar';
+import HowItWorks from '@/components/HowItWorks';
+import InputForm from '@/components/InputForm';
+import ScriptEditor from '@/components/ScriptEditor';
+import ImageReview from '@/components/ImageReview';
+import { ProgressTracker } from '@/components/ProgressTracker';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { GenerationStage, Scene, Character, SceneType } from '@/types';
-import { cn, fileToBase64, detectLanguage } from '@/lib/utils';
+import { GenerationStage, Scene, SceneType } from '@/types';
+import { detectLanguage } from '@/lib/utils';
 
 interface SceneWithImage extends Scene {
   imageUrl?: string;
@@ -37,1419 +20,499 @@ interface SceneWithImage extends Scene {
 }
 
 type UILanguage = 'en' | 'id' | 'zh';
-type WorkflowStep = 1 | 2 | 3 | 4; // 1: Enter Idea, 2: Generate Script, 3: Review Scene, 4: Generate Video
-
-const translations = {
-  en: {
-    heroTitle: 'WanTuTri',
-    heroSubtitle: 'Powered by Qwen & WAN Alibaba Cloud',
-    heroDescription: 'Transform your product into an entertaining viral Chinese comedy drama. From idea to publish-ready video in minutes.',
-    startButton: 'Start Creating Drama',
-    createSection: 'Create Your Drama',
-    createDescription: 'Describe your product or idea, add reference image if available',
-    inputPlaceholder: 'Example: Anti-acne skincare product for teenagers...',
-    referenceImage: 'Reference image:',
-    referenceTypes: 'Product / Face / Background',
-    useOwnScript: 'Use your own script',
-    script: 'Script',
-    images: 'Images',
-    video: 'Video',
-    editScript: 'Edit Drama Script',
-    visualDescription: 'Visual Description',
-    action: 'Action',
-    dialogue: 'Dialogue',
-    characters: 'Characters',
-    add: 'Add',
-    generateImages: 'Generate Images for All Scenes',
-    generatingImages: 'Generating Images...',
-    regenerate: 'Regenerate',
-    generating: 'Generating...',
-    generateVideo: 'Generate Video',
-    generatingVideo: 'Generating Video...',
-    videoSuccess: 'Video Generated Successfully!',
-    view: 'View',
-    download: 'Download',
-    createNew: 'Create New Drama',
-    howItWorks: 'How It Works',
-    howItWorksDesc: 'Three simple steps to create your marketing drama',
-    step1Title: 'Enter Idea',
-    step2Title: 'Generate Script',
-    step3Title: 'Review Scene',
-    step4Title: 'Generate Video',
-    step1Desc: 'Tell us about the product or concept you want to promote. AI will understand and develop the story.',
-    step2Desc: 'AI creates a 3-scene drama script with problem, climax, and resolution structure.',
-    step3Desc: 'Review and edit scenes, characters, actions, and dialogues before generating images.',
-    step4Desc: 'Generate images and videos aligned with action and dialogue for stunning results.',
-    aboutUs: 'About Us',
-    aboutDesc: 'WanTuTri AI is an AI-powered video marketing creation platform that combines Qwen LLM and Wan AI technology from Alibaba Cloud. We help businesses and creators create entertaining and effective drama video content for product promotion.',
-    contactUs: 'Contact Us',
-    contactDesc: 'Have questions or need assistance? Reach out to our team.',
-    problem: 'Problem',
-    climax: 'Climax',
-    resolution: 'Resolution',
-  },
-  id: {
-    heroTitle: 'WanTuTri',
-    heroSubtitle: 'Ditenagai oleh Qwen & WAN Alibaba Cloud',
-    heroDescription: 'Ubah produk Anda menjadi drama komedi Cina yang menghibur dan viral. Dari ide hingga video siap publikasi dalam hitungan menit.',
-    startButton: 'Mulai Buat Drama',
-    createSection: 'Buat Drama Anda',
-    createDescription: 'Deskripsikan produk atau ide Anda, tambahkan gambar referensi jika ada',
-    inputPlaceholder: 'Contoh: Produk skincare anti jerawat untuk remaja...',
-    referenceImage: 'Gambar referensi:',
-    referenceTypes: 'Produk / Wajah / Latar belakang',
-    useOwnScript: 'Gunakan skrip sendiri',
-    script: 'Naskah',
-    images: 'Gambar',
-    video: 'Video',
-    editScript: 'Edit Naskah Drama',
-    visualDescription: 'Deskripsi Visual',
-    action: 'Aksi',
-    dialogue: 'Dialog',
-    characters: 'Karakter',
-    add: 'Tambah',
-    generateImages: 'Generate Gambar untuk Semua Adegan',
-    generatingImages: 'Membuat Gambar...',
-    regenerate: 'Generate Ulang',
-    generating: 'Membuat...',
-    generateVideo: 'Generate Video',
-    generatingVideo: 'Membuat Video...',
-    videoSuccess: 'Video Berhasil Dibuat!',
-    view: 'Lihat',
-    download: 'Unduh',
-    createNew: 'Buat Drama Baru',
-    howItWorks: 'Cara Kerja',
-    howItWorksDesc: 'Tiga langkah mudah untuk membuat drama marketing Anda',
-    step1Title: 'Masukkan Ide',
-    step2Title: 'Generate Naskah',
-    step3Title: 'Review Adegan',
-    step4Title: 'Generate Video',
-    step1Desc: 'Ceritakan produk atau konsep yang ingin dipromosikan. AI akan memahami dan mengembangkan cerita.',
-    step2Desc: 'AI membuat naskah drama 3 adegan dengan struktur masalah, puncak, dan solusi.',
-    step3Desc: 'Review dan edit adegan, karakter, aksi, dan dialog sebelum generate gambar.',
-    step4Desc: 'Generate gambar dan video yang selaras dengan aksi dan dialog untuk hasil yang memukau.',
-    aboutUs: 'Tentang Kami',
-    aboutDesc: 'WanTuTri AI adalah platform pembuatan video marketing berbasis AI yang menggabungkan teknologi Qwen LLM dan Wan AI dari Alibaba Cloud. Kami membantu bisnis dan kreator membuat konten video drama yang menghibur dan efektif untuk promosi produk.',
-    contactUs: 'Hubungi Kami',
-    contactDesc: 'Punya pertanyaan atau butuh bantuan? Hubungi tim kami.',
-    problem: 'Masalah',
-    climax: 'Puncak',
-    resolution: 'Solusi',
-  },
-  zh: {
-    heroTitle: 'WanTuTri',
-    heroSubtitle: '由 Qwen 和 WAN 阿里云提供技术支持',
-    heroDescription: '将您的产品转化为娱乐性病毒式中国喜剧短剧。从创意到可发布的视频只需几分钟。',
-    startButton: '开始创作短剧',
-    createSection: '创作您的短剧',
-    createDescription: '描述您的产品或创意，如有需要可添加参考图片',
-    inputPlaceholder: '示例：青少年祛痘护肤产品...',
-    referenceImage: '参考图片：',
-    referenceTypes: '产品 / 人脸 / 背景',
-    useOwnScript: '使用自己的脚本',
-    script: '脚本',
-    images: '图片',
-    video: '视频',
-    editScript: '编辑短剧脚本',
-    visualDescription: '视觉描述',
-    action: '动作',
-    dialogue: '对话',
-    characters: '角色',
-    add: '添加',
-    generateImages: '为所有场景生成图片',
-    generatingImages: '正在生成图片...',
-    regenerate: '重新生成',
-    generating: '正在生成...',
-    generateVideo: '生成视频',
-    generatingVideo: '正在生成视频...',
-    videoSuccess: '视频生成成功！',
-    view: '查看',
-    download: '下载',
-    createNew: '创作新短剧',
-    howItWorks: '工作原理',
-    howItWorksDesc: '三个简单步骤创建您的营销短剧',
-    step1Title: '输入创意',
-    step2Title: '生成脚本',
-    step3Title: '审核场景',
-    step4Title: '生成视频',
-    step1Desc: '告诉我们您想推广的产品或概念。AI将理解并发展故事。',
-    step2Desc: 'AI创建具有问题、高潮和解决结构的三场景短剧脚本。',
-    step3Desc: '审核和编辑场景、角色、动作和对话，然后生成图片。',
-    step4Desc: '生成与动作和对话对齐的图片和视频，获得惊艳效果。',
-    aboutUs: '关于我们',
-    aboutDesc: 'WanTuTri AI是一个AI驱动的视频营销创作平台，结合了阿里巴巴云的Qwen LLM和Wan AI技术。我们帮助企业和创作者创建娱乐性和有效的短剧视频内容来推广产品。',
-    contactUs: '联系我们',
-    contactDesc: '有问题或需要帮助？请联系我们的团队。',
-    problem: '问题',
-    climax: '高潮',
-    resolution: '解决',
-  }
-};
 
 export default function Home() {
-  const [prompt, setPrompt] = useState('');
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
-  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  // State management
+  const [uiLang, setUiLang] = useState<UILanguage>('en');
   const [stage, setStage] = useState<GenerationStage>('idle');
   const [scenes, setScenes] = useState<SceneWithImage[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [uiLang, setUiLang] = useState<UILanguage>('en');
+  const [error, setError] = useState<string>('');
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [currentGeneratingScene, setCurrentGeneratingScene] = useState(0);
   const [promptLang, setPromptLang] = useState<'id' | 'en'>('en');
-  const [showScriptOutput, setShowScriptOutput] = useState(false);
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
-  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([1])); // Step 1 expanded by default
-  const [viewingImage, setViewingImage] = useState<string | null>(null); // For image viewer modal
-  
-  const t = translations[uiLang];
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePromptChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setPrompt(text);
-    // Detect language for AI prompt only (not UI)
-    if (text.length > 5) {
-      setPromptLang(detectLanguage(text));
-    }
-  };
-
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload a valid image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image size should be less than 5MB');
-      return;
-    }
-
-    try {
-      const base64 = await fileToBase64(file);
-      setUploadedImage(`data:${file.type};base64,${base64}`);
-      setError(null);
-    } catch (err) {
-      setError('Failed to process image');
-    }
-  };
-
-  const removeImage = () => {
-    setUploadedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Step 1: Generate Script
-  const handleGenerateScript = async () => {
-    if (!prompt.trim()) {
-      setError(t.inputPlaceholder === 'Contoh: Produk skincare anti jerawat untuk remaja...' ? 'Silakan masukkan deskripsi produk/ide' : 'Please enter product/idea description');
-      return;
-    }
-
+  // Handler: Submit input form and generate script
+  const handleInputSubmit = async (prompt: string, images: string[]) => {
+    setError('');
     setIsGeneratingScript(true);
-    setError(null);
     setStage('scripting');
-    setShowScriptOutput(true);
+
+    // Scroll to progress tracker
+    setTimeout(() => {
+      const progressSection = document.getElementById('progress-tracker-section');
+      if (progressSection) {
+        progressSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
+    // Detect language
+    const detectedLang = detectLanguage(prompt);
+    setPromptLang(detectedLang);
 
     try {
+      // Strip data URL prefix from images if present (data:image/...;base64,)
+      // Use first image for script generation (API expects single image)
+      const firstImage = images.length > 0 ? images[0] : null;
+      const imageBase64 = firstImage ? (firstImage.includes(',') ? firstImage.split(',')[1] : firstImage) : null;
+      
       const response = await fetch('/api/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          image: uploadedImage || undefined,
-          language: promptLang,
+        body: JSON.stringify({ 
+          prompt, 
+          image: imageBase64,
+          language: detectedLang,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Script generation failed');
+        throw new Error(errorData.error || 'Failed to generate script');
       }
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Script generation failed');
-      }
-
-      setScenes(result.data.scenes);
+      const data = await response.json();
+      setScenes(data.data.scenes);
       setStage('script_review');
-      setCurrentStep(2);
-      setExpandedSteps(new Set([2]));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setStage('error');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while generating the script');
+      setStage('idle');
     } finally {
       setIsGeneratingScript(false);
     }
   };
 
-  // Update scene fields
-  const updateScene = (index: number, field: keyof Scene, value: string) => {
-    setScenes(prev => prev.map((scene, i) => 
-      i === index ? { ...scene, [field]: value } : scene
-    ));
-  };
-
-  // Character management
-  const addCharacter = (sceneIndex: number) => {
-    setScenes(prev => prev.map((scene, i) => 
-      i === sceneIndex ? { 
-        ...scene, 
-        characters: [...scene.characters, { name: '', visual_description: '' }]
-      } : scene
-    ));
-  };
-
-  const removeCharacter = (sceneIndex: number, charIndex: number) => {
-    setScenes(prev => prev.map((scene, i) => 
-      i === sceneIndex ? { 
-        ...scene, 
-        characters: scene.characters.filter((_, ci) => ci !== charIndex)
-      } : scene
-    ));
-  };
-
-  const updateCharacter = (sceneIndex: number, charIndex: number, field: 'name' | 'visual_description', value: string) => {
-    setScenes(prev => prev.map((scene, i) => 
-      i === sceneIndex ? { 
-        ...scene, 
-        characters: scene.characters.map((char, ci) => 
-          ci === charIndex ? { ...char, [field]: value } : char
-        )
-      } : scene
-    ));
-  };
-
-  // Step management
-  const goToStep = (step: WorkflowStep) => {
-    // Expand the clicked step and collapse others, don't change currentStep (progress status)
-    // This allows users to view/edit previous steps without losing progress
-    setExpandedSteps(new Set([step]));
+  // Handler: Use own script (skip AI generation)
+  const handleUseOwnScript = () => {
+    setError('');
+    // Initialize with 3 empty scenes for user to fill in
+    const emptyScenes: SceneWithImage[] = [
+      {
+        scene_number: 1,
+        scene_type: 'problem',
+        title: '',
+        visual_description: '',
+        action: '',
+        dialogue: '',
+        characters: [],
+      },
+      {
+        scene_number: 2,
+        scene_type: 'climax',
+        title: '',
+        visual_description: '',
+        action: '',
+        dialogue: '',
+        characters: [],
+      },
+      {
+        scene_number: 3,
+        scene_type: 'resolution',
+        title: '',
+        visual_description: '',
+        action: '',
+        dialogue: '',
+        characters: [],
+      },
+    ];
+    setScenes(emptyScenes);
+    setStage('script_review');
     
-    // Also update the stage to show the correct section content
-    if (step === 1) {
-      // Step 1: Enter Idea - just expand/collapse the input section
-    } else if (step === 2) {
-      // Step 2: Generate Script - show script review
-      if (scenes.length > 0) {
-        setStage('script_review');
-        setShowScriptOutput(true);
+    // Scroll to script editor
+    setTimeout(() => {
+      const scriptEditor = document.getElementById('script-editor-section');
+      if (scriptEditor) {
+        scriptEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    } else if (step === 3) {
-      // Step 3: Review Scene - show image review if images exist, otherwise script review
-      if (scenes.some(s => s.imageUrl)) {
-        setStage('image_review');
-      } else if (scenes.length > 0) {
-        setStage('script_review');
-      }
-      setShowScriptOutput(true);
-    } else if (step === 4) {
-      // Step 4: Generate Video - show video/completed if videos exist
-      if (videoUrls.length > 0) {
-        setStage('completed');
-      } else if (scenes.some(s => s.imageUrl)) {
-        setStage('image_review');
-      }
-      setShowScriptOutput(true);
-    }
+    }, 100);
   };
 
-  const toggleStepExpansion = (step: number) => {
-    setExpandedSteps(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(step)) {
-        newSet.delete(step);
-      } else {
-        newSet.add(step);
-      }
-      return newSet;
-    });
-  };
-
-  // Step 2: Generate Images for all scenes
-  const handleGenerateAllImages = async () => {
+  // Handler: Submit script and auto-generate all images
+  const handleScriptSubmit = async () => {
+    setError('');
     setIsGeneratingImages(true);
-    setError(null);
     setStage('image_generation');
 
+    // Scroll to progress tracker
+    setTimeout(() => {
+      const progressSection = document.getElementById('progress-tracker-section');
+      if (progressSection) {
+        progressSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
     try {
+      // Generate images for all scenes - map to API format
+      const scenesData = scenes.map((scene, index) => ({
+        visualDescription: scene.visual_description,
+        action: scene.action,
+        characters: scene.characters,
+        sceneIndex: index,
+      }));
+
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenes: scenes.map(s => ({
-            visualDescription: s.visual_description,
-            action: s.action,
-            characters: s.characters,
-            sceneIndex: s.scene_number - 1
-          })),
-          referenceImage: uploadedImage
-        }),
+        body: JSON.stringify({ scenes: scenesData }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Image generation failed');
+        throw new Error(errorData.error || 'Failed to generate images');
       }
 
-      const result = await response.json();
+      const data = await response.json();
+      console.log('Image API response:', data);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Image generation failed');
-      }
+      // Update scenes with image URLs - data.data.imageUrls is array of {url, sceneIndex}
+      const imageUrlsMap = new Map<number, string>(
+        data.data.imageUrls.map((item: any) => [item.sceneIndex, item.url])
+      );
+      console.log('Image URLs map:', Array.from(imageUrlsMap.entries()));
+      
+      setScenes((prev) =>
+        prev.map((scene, index) => ({
+          ...scene,
+          imageUrl: imageUrlsMap.get(index) || '',
+        }))
+      );
 
-      const imageUrls = result.data.imageUrls;
-      setScenes(prev => prev.map((scene, i) => ({
-        ...scene,
-        imageUrl: imageUrls.find((img: { sceneIndex: number; url: string }) => img.sceneIndex === i)?.url,
-      })));
       setStage('image_review');
-      setCurrentStep(3);
-      setExpandedSteps(new Set([3]));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setStage('error');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while generating images');
+      setStage('script_review');
     } finally {
       setIsGeneratingImages(false);
     }
   };
 
-  // Regenerate image for a single scene
-  const handleRegenerateImage = async (index: number) => {
-    setScenes(prev => prev.map((scene, i) => 
-      i === index ? { ...scene, isGeneratingImage: true } : scene
-    ));
+  // Handler: Regenerate individual image
+  const handleRegenerateImage = async (sceneIndex: number) => {
+    const scene = scenes[sceneIndex];
+    
+    // Mark this scene as regenerating
+    setScenes((prev) =>
+      prev.map((s, i) =>
+        i === sceneIndex ? { ...s, isGeneratingImage: true } : s
+      )
+    );
 
     try {
+      // Map scene to API format
+      const sceneData = {
+        visualDescription: scene.visual_description,
+        action: scene.action,
+        characters: scene.characters,
+        sceneIndex: sceneIndex,
+      };
+
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scenes: [{
-            visualDescription: scenes[index].visual_description,
-            action: scenes[index].action,
-            characters: scenes[index].characters,
-            sceneIndex: index
-          }],
-          referenceImage: uploadedImage,
-          regenerateOnly: true
+          scenes: [sceneData],
+          regenerateOnly: true,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Image regeneration failed');
+        throw new Error(errorData.error || 'Failed to regenerate image');
       }
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Image regeneration failed');
-      }
+      const data = await response.json();
+      console.log('Regenerate image API response:', data);
+      console.log('New image URL:', data.data.imageUrl);
 
-      setScenes(prev => prev.map((scene, i) => 
-        i === index ? { 
-          ...scene, 
-          imageUrl: result.data.imageUrl,
-          isGeneratingImage: false 
-        } : scene
-      ));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setScenes(prev => prev.map((scene, i) => 
-        i === index ? { ...scene, isGeneratingImage: false } : scene
-      ));
+      // Update the specific scene with new image
+      setScenes((prev) =>
+        prev.map((s, i) =>
+          i === sceneIndex
+            ? { ...s, imageUrl: data.data.imageUrl, isGeneratingImage: false }
+            : s
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to regenerate image');
+      // Reset regenerating state
+      setScenes((prev) =>
+        prev.map((s, i) =>
+          i === sceneIndex ? { ...s, isGeneratingImage: false } : s
+        )
+      );
     }
   };
 
-  // Step 3: Generate Video
-  const handleGenerateVideo = async () => {
-    if (scenes.some(s => !s.imageUrl)) {
-      setError(t.video === 'Video' ? 'All scenes must have images' : 'Semua adegan harus memiliki gambar');
-      return;
-    }
+  // Handler: Edit scene field
+  const handleSceneEdit = (index: number, field: keyof Scene, value: string) => {
+    setScenes((prev) =>
+      prev.map((scene, i) => (i === index ? { ...scene, [field]: value } : scene))
+    );
+  };
 
+  // Handler: Generate video
+  const handleGenerateVideo = async () => {
+    setError('');
     setIsGeneratingVideo(true);
-    setError(null);
     setStage('video_generation');
 
+    // Scroll to progress tracker
+    setTimeout(() => {
+      const progressSection = document.getElementById('progress-tracker-section');
+      if (progressSection) {
+        progressSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
     try {
+      // Map scenes to API format for video generation
+      const videoScenes = scenes.map((scene) => ({
+        imageUrl: scene.imageUrl || '',
+        action: scene.action,
+        dialogue: scene.dialogue,
+      }));
+
       const response = await fetch('/api/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenes: scenes.map(s => ({
-            imageUrl: s.imageUrl,
-            action: s.action,
-            dialogue: s.dialogue
-          })),
-          referenceImage: uploadedImage, // Pass reference image for visual consistency
-        }),
+        body: JSON.stringify({ scenes: videoScenes }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Video generation failed');
+        throw new Error(errorData.error || 'Failed to generate video');
       }
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Video generation failed');
-      }
-
-      setVideoUrls(result.data.videoUrls);
-      setCurrentVideoIndex(0);
+      const data = await response.json();
+      setVideoUrls(data.data.videoUrls);
       setStage('completed');
-      setCurrentStep(4);
-      setExpandedSteps(new Set([4]));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setStage('error');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while generating video');
+      setStage('image_review');
     } finally {
       setIsGeneratingVideo(false);
     }
   };
 
-  const reset = () => {
-    setPrompt('');
-    setUploadedImage(null);
-    setScenes([]);
-    setVideoUrls([]);
-    setCurrentVideoIndex(0);
-    setStage('idle');
-    setError(null);
-    setShowScriptOutput(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const getSceneTypeLabel = (type: SceneType) => {
-    const labels = {
-      problem: t.problem,
-      climax: t.climax,
-      resolution: t.resolution
-    };
-    return labels[type];
-  };
-
-  const getSceneTypeColor = (type: SceneType) => {
-    const colors = {
-      problem: 'bg-red-100 text-red-700 border-red-200',
-      climax: 'bg-orange-100 text-orange-700 border-orange-200',
-      resolution: 'bg-green-100 text-green-700 border-green-200'
-    };
-    return colors[type];
-  };
-
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header with Navigation */}
+      <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-50">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16">
+            {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                WanTuTri AI
+              <span className="text-xl font-bold text-gray-900">
+                WanTuTri Action
               </span>
             </div>
+
+            {/* Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              <a href="#input" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Create</a>
-              <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
-              <a href="#about" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">About</a>
-              
-              {/* Language Selector */}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                {(['en', 'id', 'zh'] as UILanguage[]).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setUiLang(lang)}
-                    className={cn(
-                      'px-3 py-1 text-xs font-medium rounded-md transition-colors',
-                      uiLang === lang
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    )}
-                  >
-                    {lang === 'en' && 'EN'}
-                    {lang === 'id' && 'ID'}
-                    {lang === 'zh' && '中文'}
-                  </button>
-                ))}
-              </div>
+              <a href="#" className="text-base font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                Home
+              </a>
+              <a href="#features" className="text-base font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                Features
+              </a>
+              <a href="#about" className="text-base font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                About
+              </a>
             </nav>
+
+            {/* Language Selector */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setUiLang('en')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  uiLang === 'en'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setUiLang('id')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  uiLang === 'id'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                ID
+              </button>
+              <button
+                onClick={() => setUiLang('zh')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  uiLang === 'zh'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                中文
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Section 1: Hero */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" />
-              <span>AI-Powered Marketing Drama</span>
-            </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-              WanTuTri
-            </h1>
-            <p className="text-xl sm:text-2xl text-gray-500 mb-4">
-              Powered by Qwen & WAN Alibaba Cloud
-            </p>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-              {t.heroDescription}
-            </p>
-            <motion.a
-              href="#input"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-            >
-              <Wand2 className="w-5 h-5" />
-              {t.startButton}
-            </motion.a>
-          </motion.div>
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+
+      {/* Marketing Sections */}
+      <HeroSection uiLang={uiLang} />
+      <BrandingBar uiLang={uiLang} />
+      <HowItWorks uiLang={uiLang} />
+
+      {/* Application Sections */}
+      <InputForm
+        uiLang={uiLang}
+        onSubmit={handleInputSubmit}
+        onUseOwnScript={handleUseOwnScript}
+        isLoading={isGeneratingScript}
+        error={error}
+      />
+
+      {/* Progress Tracker */}
+      {stage !== 'idle' && (
+        <div id="progress-tracker-section" className="py-8 bg-white">
+          <div className="max-w-5xl mx-auto px-4">
+            <ProgressTracker
+              stage={stage}
+              currentScene={currentGeneratingScene}
+              totalScenes={scenes.length}
+              uiLang={uiLang}
+            />
+          </div>
         </div>
-      </section>
+      )}
 
-      {/* Section 2: Input */}
-      <section id="input" className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              {t.createSection}
-            </h2>
-            <p className="text-gray-600">
-              {t.createDescription}
-            </p>
-          </motion.div>
+      {/* Script Editor */}
+      {stage === 'script_review' && (
+        <ScriptEditor
+          uiLang={uiLang}
+          scenes={scenes}
+          onScenesChange={setScenes}
+          onSubmit={handleScriptSubmit}
+          isLoading={isGeneratingImages}
+        />
+      )}
 
-          {/* Step 1: Enter Idea - Collapsible */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-          >
-            {/* Step 1 Header - Always visible, clickable to expand/collapse */}
-            <button
-              onClick={() => toggleStepExpansion(1)}
-              className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+      {/* Image Review */}
+      {(stage === 'image_generation' ||
+        stage === 'image_review' ||
+        stage === 'video_generation') &&
+        scenes.some((s) => s.imageUrl) && (
+          <ImageReview
+            uiLang={uiLang}
+            scenes={scenes}
+            onSceneEdit={handleSceneEdit}
+            onRegenerateImage={handleRegenerateImage}
+            onGenerateVideo={handleGenerateVideo}
+            isGeneratingVideo={isGeneratingVideo}
+          />
+        )}
+
+      {/* Video Player */}
+      {videoUrls.length > 0 && stage === 'completed' && (
+        <section className="py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-8"
             >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
-                  currentStep > 1 ? 'bg-green-500 text-white' : 
-                  currentStep === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                )}>
-                  {currentStep > 1 ? <CheckCircle2 className="w-6 h-6" /> : 1}
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-gray-900">{t.step1Title}</h3>
-                  <p className="text-sm text-gray-500">{t.step1Desc}</p>
-                </div>
+              <div className="text-center mb-8">
+                <h2 className="text-5xl font-black text-white mb-3 tracking-tight">
+                  FINAL VIDEO OUTPUT
+                </h2>
+                <p className="text-gray-300 text-lg">
+                  Your AI-generated cinematic masterpiece
+                </p>
               </div>
-              {expandedSteps.has(1) ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-            </button>
-            
-            {/* Step 1 Content - Collapsible */}
-            <AnimatePresence>
-              {expandedSteps.has(1) && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-6 pb-6">
-              <div className="flex gap-4">
-                {/* Image Upload Button */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isGeneratingScript}
-                  className="flex-shrink-0 w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
-                  title={t.add}
-                >
-                  {uploadedImage ? (
-                    <img src={uploadedImage} alt="Ref" className="w-10 h-10 object-cover rounded-lg" />
-                  ) : (
-                    <Plus className="w-6 h-6 text-gray-600" />
-                  )}
-                </button>
-
-                {/* Text Input */}
-                <div className="flex-1">
-                  <textarea
-                    value={prompt}
-                    onChange={handlePromptChange}
-                    placeholder={t.inputPlaceholder}
-                    className="w-full h-12 py-3 px-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-700 placeholder:text-gray-400"
-                    disabled={isGeneratingScript}
-                    rows={1}
-                  />
-                </div>
-
-                {/* Send Button */}
-                <motion.button
-                  whileHover={{ scale: isGeneratingScript ? 1 : 1.05 }}
-                  whileTap={{ scale: isGeneratingScript ? 1 : 0.95 }}
-                  onClick={handleGenerateScript}
-                  disabled={isGeneratingScript || !prompt.trim()}
-                  className="flex-shrink-0 w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 rounded-xl flex items-center justify-center transition-colors"
-                >
-                  {isGeneratingScript ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5 text-white" />
-                  )}
-                </motion.button>
-              </div>
-
-              {/* Uploaded Image Preview */}
-              {uploadedImage && (
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="relative">
-                    <img src={uploadedImage} alt="Reference" className="h-20 w-20 object-cover rounded-lg border border-gray-200" />
-                    <button
-                      onClick={removeImage}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    <p className="font-medium">
-                      {t.referenceImage}
-                    </p>
-                    <p className="text-xs">
-                      {t.referenceTypes}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-xl"
-                >
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
-                </motion.div>
-              )}
-
-              {/* Use Your Own Script Toggle */}
-              <button
-                onClick={() => {
-                  // If no scenes exist, create empty template scenes for manual editing
-                  if (scenes.length === 0) {
-                    setScenes([
-                      {
-                        scene_number: 1,
-                        scene_type: 'problem',
-                        title: '',
-                        visual_description: '',
-                        action: '',
-                        dialogue: '',
-                        characters: [{ name: '', visual_description: '' }],
-                        imageUrl: undefined,
-                      },
-                      {
-                        scene_number: 2,
-                        scene_type: 'climax',
-                        title: '',
-                        visual_description: '',
-                        action: '',
-                        dialogue: '',
-                        characters: [{ name: '', visual_description: '' }],
-                        imageUrl: undefined,
-                      },
-                      {
-                        scene_number: 3,
-                        scene_type: 'resolution',
-                        title: '',
-                        visual_description: '',
-                        action: '',
-                        dialogue: '',
-                        characters: [{ name: '', visual_description: '' }],
-                        imageUrl: undefined,
-                      },
-                    ]);
-                    setStage('script_review');
-                    setCurrentStep(2);
-                    setExpandedSteps(new Set([2]));
-                  }
-                  setShowScriptOutput(!showScriptOutput);
-                }}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-              >
-                {t.useOwnScript}
-                {showScriptOutput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            </div>
-                  </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
-          {/* 4-Step Workflow Timeline */}
-          {(currentStep > 1 || scenes.length > 0) && (
-            <div className="mt-8 mb-8">
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    {[
-                      { step: 1, label: t.step1Title, icon: Lightbulb },
-                      { step: 2, label: t.step2Title, icon: FileText },
-                      { step: 3, label: t.step3Title, icon: ImageIcon },
-                      { step: 4, label: t.step4Title, icon: Film },
-                    ].map((s, index) => {
-                      const Icon = s.icon;
-                      const isExpanded = expandedSteps.has(s.step);
-                      const isCompleted = currentStep > s.step;
-                      const isCurrent = currentStep === s.step;
-                      const isClickable = s.step <= currentStep;
-                      
-                      return (
-                        <div key={s.step} className="flex items-center flex-1">
-                          <button
-                            onClick={() => isClickable && goToStep(s.step as WorkflowStep)}
-                            disabled={!isClickable}
-                            className={cn(
-                              'flex items-center gap-3 px-4 py-3 rounded-xl transition-all flex-1 justify-center',
-                              isCompleted ? 'bg-green-100 text-green-700 hover:bg-green-200' :
-                              isCurrent && isExpanded ? 'bg-blue-600 text-white shadow-lg' :
-                              isExpanded ? 'bg-blue-100 text-blue-700' :
-                              isCurrent ? 'bg-blue-50 text-blue-600 border-2 border-blue-200' :
-                              'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            )}
-                          >
-                            <div className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
-                              isCompleted ? 'bg-green-500 text-white' :
-                              isCurrent && isExpanded ? 'bg-white text-blue-600' :
-                              isCurrent ? 'bg-blue-600 text-white' :
-                              'bg-gray-300 text-gray-500'
-                            )}>
-                              {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : s.step}
-                            </div>
-                            <span className="font-medium text-sm">{s.label}</span>
-                          </button>
-                          {index < 3 && (
-                            <div className={cn(
-                              'w-8 h-0.5 mx-2',
-                              isCompleted ? 'bg-green-400' : 'bg-gray-200'
-                            )} />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Generated Script Output */}
-          <AnimatePresence>
-            {showScriptOutput && scenes.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-6"
-              >
-
-                {/* Script Review Section */}
-                {stage === 'script_review' && (
-                  <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100">
-                      <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                        {t.editScript}
-                      </h3>
-                    </div>
-                    
-                    <div className="p-6 space-y-6">
-                      {scenes.map((scene, index) => (
-                        <motion.div
-                          key={scene.scene_number}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="bg-gray-50 rounded-xl p-5 border border-gray-200"
-                        >
-                          <div className="flex items-center gap-3 mb-4">
-                            <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                              {index + 1}
-                            </span>
-                            <span className={cn('px-3 py-1 rounded-full text-xs font-medium border', getSceneTypeColor(scene.scene_type))}>
-                              {getSceneTypeLabel(scene.scene_type)}
-                            </span>
-                            <input
-                              type="text"
-                              value={scene.title}
-                              onChange={(e) => updateScene(index, 'title', e.target.value)}
-                              className="flex-1 font-medium text-gray-900 bg-transparent border-none focus:ring-0 p-0"
-                            />
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t.visualDescription}
-                              </label>
-                              <textarea
-                                value={scene.visual_description}
-                                onChange={(e) => updateScene(index, 'visual_description', e.target.value)}
-                                className="w-full min-h-[80px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                              />
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {t.action}
-                                </label>
-                                <textarea
-                                  value={scene.action}
-                                  onChange={(e) => updateScene(index, 'action', e.target.value)}
-                                  className="w-full min-h-[60px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {t.dialogue}
-                                </label>
-                                <textarea
-                                  value={scene.dialogue}
-                                  onChange={(e) => updateScene(index, 'dialogue', e.target.value)}
-                                  className="w-full min-h-[60px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Characters Section */}
-                            <div className="pt-4 border-t border-gray-200">
-                              <div className="flex items-center justify-between mb-3">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                  <Users className="w-4 h-4" />
-                                  {t.characters}
-                                </label>
-                                <button
-                                  onClick={() => addCharacter(index)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  {t.add}
-                                </button>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                {scene.characters.map((char, charIndex) => (
-                                  <motion.div
-                                    key={charIndex}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="bg-white rounded-lg p-3 border border-gray-200"
-                                  >
-                                    <div className="flex items-start gap-2">
-                                      <div className="flex-1 space-y-2">
-                                        <input
-                                          type="text"
-                                          value={char.name}
-                                          onChange={(e) => updateCharacter(index, charIndex, 'name', e.target.value)}
-                                          placeholder={t.characters}
-                                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                        <textarea
-                                          value={char.visual_description}
-                                          onChange={(e) => updateCharacter(index, charIndex, 'visual_description', e.target.value)}
-                                          placeholder={t.visualDescription}
-                                          className="w-full min-h-[60px] px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                      </div>
-                                      {scene.characters.length > 1 && (
-                                        <button
-                                          onClick={() => removeCharacter(index, charIndex)}
-                                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="p-6 border-t border-gray-100">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleGenerateAllImages}
-                        disabled={isGeneratingImages}
-                        className="w-full py-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isGeneratingImages ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>{t.generatingImages}</span>
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="w-5 h-5" />
-                            <span>{t.generateImages}</span>
-                          </>
-                        )}
-                      </motion.button>
+              
+              {videoUrls.map((videoUrl, index) => (
+                <div key={index} className="space-y-6">
+                  <div className="bg-gray-100 rounded-2xl p-2 shadow-xl mx-auto w-fit">
+                    <div className="w-full max-w-sm mx-auto">
+                      <VideoPlayer videoUrl={videoUrl} />
                     </div>
                   </div>
-                )}
-
-                {/* Image Review Section */}
-                {(stage === 'image_generation' || stage === 'image_review' || stage === 'video_generation' || stage === 'completed') && scenes.some(s => s.imageUrl) && (
-                  <div className="space-y-6">
-                    {scenes.map((scene, index) => (
-                      <motion.div
-                        key={scene.scene_number}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-                      >
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                              {index + 1}
-                            </span>
-                            <span className={cn('px-3 py-1 rounded-full text-xs font-medium border', getSceneTypeColor(scene.scene_type))}>
-                              {getSceneTypeLabel(scene.scene_type)}
-                            </span>
-                            <span className="font-medium text-gray-900">{scene.title}</span>
-                          </div>
-                          {scene.imageUrl && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => setViewingImage(scene.imageUrl!)}
-                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title={t.view}
-                              >
-                                <Eye className="w-5 h-5" />
-                              </button>
-                              <a
-                                href={scene.imageUrl}
-                                download
-                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title={t.download}
-                              >
-                                <Download className="w-5 h-5" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-                          {/* Left: Editable Content */}
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t.visualDescription}
-                              </label>
-                              <textarea
-                                value={scene.visual_description}
-                                onChange={(e) => updateScene(index, 'visual_description', e.target.value)}
-                                disabled={stage === 'video_generation'}
-                                className="w-full min-h-[80px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100"
-                              />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {t.action}
-                                </label>
-                                <textarea
-                                  value={scene.action}
-                                  onChange={(e) => updateScene(index, 'action', e.target.value)}
-                                  disabled={stage === 'video_generation'}
-                                  className="w-full min-h-[60px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {t.dialogue}
-                                </label>
-                                <textarea
-                                  value={scene.dialogue}
-                                  onChange={(e) => updateScene(index, 'dialogue', e.target.value)}
-                                  disabled={stage === 'video_generation'}
-                                  className="w-full min-h-[60px] p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100"
-                                />
-                              </div>
-                            </div>
-
-                            {stage !== 'video_generation' && stage !== 'completed' && (
-                              <button
-                                onClick={() => handleRegenerateImage(index)}
-                                disabled={scene.isGeneratingImage}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
-                              >
-                                {scene.isGeneratingImage ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>{t.generating}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <RefreshCw className="w-4 h-4" />
-                                    <span>{t.regenerate}</span>
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Right: Generated Image - 16:9 */}
-                          <div className="flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
-                            {scene.imageUrl ? (
-                              <div className="relative w-full aspect-[9/16] max-w-[400px] mx-auto">
-                                <img
-                                  src={scene.imageUrl}
-                                  alt={`Scene ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[9/16] max-w-[400px] mx-auto flex flex-col items-center justify-center">
-                                <ImageIcon className="w-12 h-12 text-gray-300 mb-2" />
-                                <span className="text-sm text-gray-400">
-                                  {t.images}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-
-                    {/* Generate Video Button */}
-                    {stage !== 'video_generation' && stage !== 'completed' && (
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleGenerateVideo}
-                        disabled={isGeneratingVideo || scenes.some(s => !s.imageUrl)}
-                        className={cn(
-                          'w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all',
-                          isGeneratingVideo || scenes.some(s => !s.imageUrl)
-                            ? 'bg-gray-300 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
-                        )}
-                      >
-                        {isGeneratingVideo ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>{t.generatingVideo}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-5 h-5" />
-                            <span>{t.generateVideo}</span>
-                          </>
-                        )}
-                      </motion.button>
-                    )}
-                  </div>
-                )}
-
-                {/* Final Video Section */}
-                {videoUrls.length > 0 && stage === 'completed' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-                  >
-                    <div className="p-6 border-b border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-6 h-6 text-green-500" />
-                          <h3 className="text-xl font-semibold text-gray-900">
-                            {t.videoSuccess}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {videoUrls.map((url, idx) => (
-                            <a
-                              key={idx}
-                              href={url}
-                              download
-                              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                            >
-                              <Download className="w-4 h-4" />
-                              <span>Scene {idx + 1}</span>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 space-y-6">
-                      {/* Scene Selector */}
-                      <div className="flex items-center justify-center gap-2">
-                        {videoUrls.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setCurrentVideoIndex(idx)}
-                            className={cn(
-                              'px-4 py-2 rounded-lg font-medium transition-colors',
-                              currentVideoIndex === idx
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            )}
-                          >
-                            Scene {idx + 1}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* Current Video Player - 9:16 for TikTok/Reels */}
-                      <div className="aspect-[9/16] max-w-[400px] mx-auto bg-black rounded-xl overflow-hidden">
-                        <VideoPlayer 
-                          videoUrl={videoUrls[currentVideoIndex]} 
-                          onEnded={() => {
-                            // Auto-play next scene
-                            if (currentVideoIndex < videoUrls.length - 1) {
-                              setCurrentVideoIndex(currentVideoIndex + 1);
-                            }
-                          }}
-                        />
-                      </div>
-                      
-                      {/* Scene Info */}
-                      {scenes[currentVideoIndex] && (
-                        <div className="bg-gray-50 rounded-xl p-4 max-w-[400px] mx-auto">
-                          <h4 className="font-semibold text-gray-900 mb-2">
-                            Scene {currentVideoIndex + 1}: {scenes[currentVideoIndex].title}
-                          </h4>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Action:</span> {scenes[currentVideoIndex].action}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Dialogue:</span> {scenes[currentVideoIndex].dialogue}
-                          </p>
-                        </div>
-                      )}
-                      
-                      <button
-                        onClick={reset}
-                        className="w-full py-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Wand2 className="w-5 h-5" />
-                        <span>{t.createNew}</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Image Viewer Modal */}
-          <AnimatePresence>
-            {viewingImage && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-                onClick={() => setViewingImage(null)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="relative max-w-4xl max-h-[90vh] w-full"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Close button */}
-                  <button
-                    onClick={() => setViewingImage(null)}
-                    className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
                   
-                  {/* Image */}
-                  <img
-                    src={viewingImage}
-                    alt="View"
-                    className="w-full h-full object-contain rounded-lg"
-                  />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* Section 3: How It Works */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              {t.howItWorks}
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              {t.howItWorksDesc}
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Lightbulb,
-                title: t.step1Title,
-                description: t.step1Desc,
-                step: '01'
-              },
-              {
-                icon: PenTool,
-                title: t.step2Title,
-                description: t.step2Desc,
-                step: '02'
-              },
-              {
-                icon: Film,
-                title: t.step3Title,
-                description: t.step3Desc,
-                step: '03'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="relative"
-              >
-                <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
-                  <span className="absolute -top-4 -right-4 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-lg font-bold">
-                    {item.step}
-                  </span>
-                  <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-                    <item.icon className="w-7 h-7 text-blue-600" />
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="px-8 py-3 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-black transition-colors duration-300"
+                    >
+                      Regenerate
+                    </button>
+                    <a
+                      href={videoUrl}
+                      download="wantutri-video.mp4"
+                      className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors duration-300"
+                    >
+                      Download
+                    </a>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Section 4: About & Contact */}
-      <section id="about" className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                {t.aboutUs}
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {t.aboutDesc}
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Powered by Alibaba Cloud</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                {t.contactUs}
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {t.contactDesc}
-              </p>
-              <div className="space-y-3">
-                <a href="mailto:contact@wantutri.ai" className="flex items-center gap-3 text-gray-600 hover:text-blue-600 transition-colors">
-                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-gray-200">
-                    <span className="text-lg">@</span>
-                  </div>
-                  <span>contact@wantutri.ai</span>
-                </a>
-              </div>
+              ))}
             </motion.div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Footer */}
-      <footer className="py-8 bg-white border-t border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
-              </div>
-              <span className="font-semibold text-gray-900">WanTuTri AI</span>
+      <footer className="py-16 bg-gray-100 border-t border-gray-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+            {/* Column 1: About */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                WanTuTri Action
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                AI-powered platform to turn ideas into cinematic scripts and ready-to-generate video content.
+              </p>
+              <p className="text-gray-500 text-sm">
+                Powered by Qwen & Wan — Alibaba AI
+              </p>
             </div>
-            <p className="text-sm text-gray-500">
-              © 2026 WanTuTri AI. Powered by Qwen & WAN Alibaba Cloud.
+
+            {/* Column 2: Features */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Features
+              </h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                <li>AI Script Generator</li>
+                <li>Scene Breakdown</li>
+                <li>Visual Prompts</li>
+                <li>Video Generator</li>
+              </ul>
+            </div>
+
+            {/* Column 3: Contact */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Contact
+              </h3>
+              <ul className="space-y-2 text-gray-600 text-sm">
+                <li>Email: Geutanyoe@gmail.com</li>
+                <li>Available 24/7</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="pt-8 border-t border-gray-300">
+            <p className="text-center text-gray-500 text-sm">
+              © 2026 WanTuTri Action. All rights reserved.
             </p>
           </div>
         </div>
