@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'commondatastorage.googleapis.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'dashscope-result-bj.oss-cn-beijing.aliyuncs.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dashscope-result-sh.oss-cn-shanghai.aliyuncs.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.aliyuncs.com',
+      },
     ],
   },
   async headers() {
