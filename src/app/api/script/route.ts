@@ -6,7 +6,7 @@ import { generateScript } from '@/lib/qwen';
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { prompt, image } = body;
+    const { prompt, image, referenceImages } = body;
 
     if (!prompt || prompt.trim().length === 0) {
       return NextResponse.json(
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const language = detectLanguage(prompt);
     
-    const scenes = await generateScript(prompt, language, image);
+    const scenes = await generateScript(prompt, language, image, referenceImages);
     
     return NextResponse.json({
       success: true,

@@ -40,7 +40,7 @@ export default function BrandingBar({ uiLang }: BrandingBarProps) {
         >
           {Array(2).fill(marqueeText).map((text, i) => (
             <div key={i} className="flex items-center gap-6">
-              <p className="text-xl md:text-2xl lg:text-3xl font-black text-white tracking-wider">
+              <p className="font-integral-cf text-xl md:text-2xl lg:text-3xl font-black text-white tracking-wider">
                 {text}
               </p>
             </div>

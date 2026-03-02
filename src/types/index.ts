@@ -41,10 +41,20 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+export type ReferenceImageType = 'product' | 'character' | 'background' | 'mixed' | 'unknown';
+
+export interface ReferenceImageMeta {
+  image?: string;
+  type: ReferenceImageType;
+  summary?: string;
+  confidence?: number;
+}
+
 export interface GenerateRequest {
   prompt: string;
   image?: string;
-  language: 'id' | 'en';
+  language?: 'id' | 'en' | 'zh';
+  referenceImages?: ReferenceImageMeta[];
 }
 
 export interface GenerateResponse {

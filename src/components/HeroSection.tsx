@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { ScrollingImageGrid } from '@/components/ui/scrolling-image-grid';
@@ -43,6 +44,14 @@ const translations = {
 
 export default function HeroSection({ uiLang }: HeroSectionProps) {
   const t = translations[uiLang];
+  const titleChars = Array.from(t.title);
+  const subtitleChars = Array.from(t.subtitle);
+  const [playHeadingAnimation, setPlayHeadingAnimation] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPlayHeadingAnimation(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleGetStarted = () => {
     const inputSection = document.getElementById('input-section');
@@ -83,13 +92,67 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="space-y-6"
+            className="space-y-6 -mt-6 md:-mt-10"
           >
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-black leading-tight text-gray-900">
-                {t.title}
+              <h1 className="font-integral-cf text-4xl md:text-5xl font-black leading-tight text-gray-900">
+                <motion.span
+                  initial={playHeadingAnimation ? 'hidden' : false}
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.03,
+                        delayChildren: 0.1,
+                      },
+                    },
+                  }}
+                  className="inline-block"
+                >
+                  {titleChars.map((char, index) => (
+                    <motion.span
+                      key={`${char}-${index}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 12 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
+                      transition={{ duration: 0.35, ease: 'easeOut' }}
+                      className="inline-block font-black"
+                    >
+                      {char === ' ' ? '\u00A0' : char}
+                    </motion.span>
+                  ))}
+                </motion.span>
                 <br />
-                {t.subtitle}
+                <motion.span
+                  initial={playHeadingAnimation ? 'hidden' : false}
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.025,
+                        delayChildren: 0.45,
+                      },
+                    },
+                  }}
+                  className="inline-block"
+                >
+                  {subtitleChars.map((char, index) => (
+                    <motion.span
+                      key={`subtitle-${char}-${index}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 12 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="inline-block font-black"
+                    >
+                      {char === ' ' ? '\u00A0' : char}
+                    </motion.span>
+                  ))}
+                </motion.span>
               </h1>
             </div>
 
@@ -149,19 +212,73 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
         </div>
 
         {/* Desktop: Side-by-side with marquee on right */}
-        <div className="hidden lg:grid lg:grid-cols-2  items-center h-screen px-8 xl:px-12">
+        <div className="hidden lg:grid lg:grid-cols-[56%_44%] items-center h-screen px-8 xl:px-12">
           {/* Left content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="z-10 space-y-4 lg:space-y-5"
+            className="z-10 space-y-4 lg:space-y-5 -mt-10 xl:-mt-14"
           >
             <div className="space-y-3">
-              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black leading-[1.1] text-gray-900">
-                {t.title}
+              <h1 className="font-integral-cf text-4xl lg:text-5xl xl:text-6xl font-black leading-[1.1] text-gray-900">
+                <motion.span
+                  initial={playHeadingAnimation ? 'hidden' : false}
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.03,
+                        delayChildren: 0.1,
+                      },
+                    },
+                  }}
+                  className="inline-block"
+                >
+                  {titleChars.map((char, index) => (
+                    <motion.span
+                      key={`desktop-${char}-${index}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 12 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
+                      transition={{ duration: 0.35, ease: 'easeOut' }}
+                      className="inline-block font-black"
+                    >
+                      {char === ' ' ? '\u00A0' : char}
+                    </motion.span>
+                  ))}
+                </motion.span>
                 <br />
-                {t.subtitle}
+                <motion.span
+                  initial={playHeadingAnimation ? 'hidden' : false}
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.025,
+                        delayChildren: 0.45,
+                      },
+                    },
+                  }}
+                  className="inline-block"
+                >
+                  {subtitleChars.map((char, index) => (
+                    <motion.span
+                      key={`desktop-subtitle-${char}-${index}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 12 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="inline-block font-black"
+                    >
+                      {char === ' ' ? '\u00A0' : char}
+                    </motion.span>
+                  ))}
+                </motion.span>
               </h1>
             </div>
 
@@ -214,7 +331,7 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="absolute top-0 right-0 bottom-0 w-1/2 z-0"
+            className="absolute top-0 -right-10 xl:-right-14 bottom-0 w-1/2 z-0"
           >
             <ScrollingImageGrid images={gridImages} />
           </motion.div>
