@@ -93,7 +93,7 @@ export default function HowItWorks({ uiLang }: HowItWorksProps) {
   const t = translations[uiLang];
 
   return (
-    <section className="relative h-screen flex flex-col justify-center bg-gray-50 overflow-hidden py-12">
+    <section id="how-it-works" className="relative h-screen flex flex-col justify-center bg-gray-50 overflow-hidden py-12">
       <div className="container mx-auto px-4">
         
         {/* Sparkle icon - top right */}

@@ -14,7 +14,7 @@ const translations = {
     title: 'TURN YOUR IDEAS INTO',
     subtitle: 'DRAMATIC AI CONTENT',
     description: 'Transform your ideas into structured scenes, AI image prompts, and video-ready content — all in one place.',
-    cta: 'Start Now',
+    cta: 'Create Now',
     builtin: 'Built For Modern Storytelling',
     youtube: 'YouTube Creators',
     tiktok: 'Tiktok Creators',
@@ -24,7 +24,7 @@ const translations = {
     title: 'UBAH IDE ANDA MENJADI',
     subtitle: 'KONTEN AI DRAMATIS',
     description: 'Ubah ide Anda menjadi adegan terstruktur, prompt gambar AI, dan konten siap video — semua dalam satu tempat.',
-    cta: 'Mulai Sekarang',
+    cta: 'Buat Sekarang',
     builtin: 'Dibuat Untuk Storytelling Modern',
     youtube: 'YouTube Creators',
     tiktok: 'Kreator TikTok',
@@ -58,24 +58,21 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
     inputSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Sample images for scrolling grid (square 1:1 aspect ratio)
+  // Local images from public/image (add more files and paths here)
   const gridImages = [
-    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=400&fit=crop',
+    '/image/example1.jpg',
+    '/image/example2.jpg',
+    '/image/example3.jpg',
+    '/image/example4.jpg',
+    '/image/example5.jpg',
+    '/image/example6.jpg',
+    '/image/example7.jpg',
+    '/image/example8.jpg',
+    '/image/example9.jpg',
+    '/image/example10.jpg',
+    '/image/example11.jpg',
+    '/image/example12.jpg',
+    '/image/example13.jpg',
   ];
 
   return (
@@ -162,13 +159,13 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
 
             <button
               onClick={handleGetStarted}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gray-900 text-white rounded-full font-semibold text-base transition-all duration-300 hover:bg-gray-800 hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-10 py-4 bg-[#6A5EE5] text-white rounded-full font-semibold text-lg transition-all duration-300 hover:bg-[#5A50D1] hover:shadow-xl"
             >
               {t.cta}
             </button>
 
             {/* Platform Badges */}
-            <div className="pt-4 space-y-3">
+            <div className="pt-10 space-y-3">
               <p className="text-sm font-medium text-gray-500">
                 {t.builtin}
               </p>
@@ -288,13 +285,13 @@ export default function HeroSection({ uiLang }: HeroSectionProps) {
 
             <button
               onClick={handleGetStarted}
-              className="inline-flex items-center gap-2 px-6 lg:px-7 py-3 bg-gray-900 text-white rounded-full font-semibold text-sm lg:text-base transition-all duration-300 hover:bg-gray-800 hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 lg:px-9 py-3.5 bg-[#6A5EE5] text-white rounded-full font-semibold text-base lg:text-lg transition-all duration-300 hover:bg-[#5A50D1] hover:shadow-xl"
             >
               {t.cta}
             </button>
 
             {/* Platform Badges */}
-            <div className="pt-2 space-y-2">
+            <div className="pt-25 space-y-3">
               <p className="text-sm font-medium text-gray-500">
                 {t.builtin}
               </p>

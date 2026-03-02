@@ -8,9 +8,19 @@ interface ScrollingImageGridProps {
 }
 
 export function ScrollingImageGrid({ images, className = '' }: ScrollingImageGridProps) {
+  const fallbackImage = '/image/robotThink.png';
+  const sourceImages = images.length > 0 ? images : [fallbackImage];
+
+  // Ensure enough items for smooth infinite loop across 3 columns
+  const minTotalImages = 12; // ~4 images/column before duplication
+  const normalizedImages: string[] = [];
+  for (let i = 0; i < Math.max(sourceImages.length, minTotalImages); i++) {
+    normalizedImages.push(sourceImages[i % sourceImages.length]);
+  }
+
   // Split images into 3 columns (round-robin)
   const columns: string[][] = [[], [], []];
-  images.forEach((img, i) => {
+  normalizedImages.forEach((img, i) => {
     columns[i % 3].push(img);
   });
 
@@ -77,12 +87,12 @@ function ScrollColumn({ images, direction, speed }: ScrollColumnProps) {
   const allImages = [...images, ...images];
 
   return (
-    <div className="flex-shrink-0 w-[200px]">
+    <div className="flex-shrink-0 w-[150px] lg:w-[170px]">
       <div ref={columnRef} className="flex flex-col gap-3">
         {allImages.map((src, i) => (
           <div
             key={i}
-            className="w-[200px] h-[200px] rounded-2xl overflow-hidden shadow-lg flex-shrink-0"
+            className="w-[150px] h-[267px] lg:w-[170px] lg:h-[302px] rounded-2xl overflow-hidden shadow-lg flex-shrink-0"
           >
             <img
               src={src}

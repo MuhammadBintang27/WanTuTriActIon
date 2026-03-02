@@ -110,163 +110,150 @@ export function ProgressTracker({ stage, currentScene = 0, totalScenes = 3, uiLa
   };
 
   const LoadingIcon = getLoadingIcon();
+  const completedStageIndex = isLoading && currentStageIndex > 0 ? currentStageIndex - 1 : currentStageIndex;
+  const completedProgressPercent = Math.max(0, Math.min(100, (completedStageIndex / (stages.length - 1)) * 100));
+  const transitionSegmentIndex = Math.max(0, currentStageIndex - 1);
+  const isTransitioningToCurrent = isLoading && currentStageIndex > 0 && transitionSegmentIndex < stages.length - 1;
 
   return (
-    <div className="w-full max-w-4xl mx-auto py-8">
-      <div className="flex items-center justify-center mb-6 px-4">
-        {stages.map((s, index) => {
-          const isCompleted = currentStageIndex > index;
-          const isCurrent = currentStageIndex === index;
-          const isPending = currentStageIndex < index;
+    <div className="w-full max-w-5xl mx-auto py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="rounded-3xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-6 md:px-8 md:py-8 shadow-sm"
+      >
+        <div className="relative mb-8">
+          <div className="absolute left-[12.5%] right-[12.5%] top-8 h-1 rounded-full bg-gray-200" />
+          <motion.div
+            className="absolute left-[12.5%] top-8 h-1 rounded-full bg-[#6A5EE5]"
+            initial={{ width: '0%' }}
+            animate={{ width: `${completedProgressPercent * 0.75}%` }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          />
 
-          return (
-            <div key={s.id} className="flex flex-col items-center relative" style={{ marginRight: index < stages.length - 1 ? '80px' : '0' }}>
-              {/* Connection Line */}
-              {index < stages.length - 1 && (
-                <div className="absolute top-5 left-[50%] h-[2px] bg-gray-300 z-0" style={{ width: '80px' }}>
-                  <motion.div
-                    className="h-full bg-black"
-                    initial={{ width: '0%' }}
-                    animate={{
-                      width: isCompleted ? '100%' : '0%',
-                    }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-              )}
-
-              {/* Stage Circle */}
+          {isTransitioningToCurrent && (
+            <div
+              className="absolute top-8 h-1 overflow-hidden rounded-full z-20"
+              style={{
+                left: `${12.5 + transitionSegmentIndex * 25}%`,
+                width: '25%',
+              }}
+            >
               <motion.div
-                initial={false}
-                className={cn(
-                  'relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all duration-300 border-2',
-                  (isCompleted || isCurrent) && 'bg-black border-black',
-                  isPending && 'bg-white border-gray-300'
-                )}
-              >
-                <span
-                  className={cn(
-                    'text-sm font-semibold',
-                    (isCompleted || isCurrent) ? 'text-white' : 'text-gray-400'
-                  )}
-                >
-                  {index + 1}
-                </span>
-              </motion.div>
-
-              {/* Stage Label */}
-              <span
-                className={cn(
-                  'text-xs font-medium transition-colors duration-300 text-center',
-                  (isCompleted || isCurrent) && 'text-black',
-                  isPending && 'text-gray-400'
-                )}
-              >
-                {t[s.label as keyof typeof t]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Progress Message */}
-      {stage !== 'idle' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mx-auto max-w-lg"
-        >
-          {isLoading ? (
-            <div className="flex flex-col items-center gap-6 py-8">
-              {/* Animated Icon */}
-              <motion.div
-                className="relative"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                <div className="w-24 h-24 bg-black rounded-2xl flex items-center justify-center relative">
-                  <LoadingIcon className="w-12 h-12 text-white" />
-                  
-                  {/* Orbiting dots */}
-                  {[0, 120, 240].map((angle, index) => (
-                    <motion.div
-                      key={index}
-                      className="absolute w-3 h-3 bg-gray-800 rounded-full"
-                      style={{
-                        top: '50%',
-                        left: '50%',
-                      }}
-                      animate={{
-                        x: [
-                          Math.cos((angle * Math.PI) / 180) * 50,
-                          Math.cos(((angle + 360) * Math.PI) / 180) * 50,
-                        ],
-                        y: [
-                          Math.sin((angle * Math.PI) / 180) * 50,
-                          Math.sin(((angle + 360) * Math.PI) / 180) * 50,
-                        ],
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: 'linear',
-                      }}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Loading Text */}
-              <motion.p
-                className="text-lg font-semibold text-gray-900"
-                animate={{
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                {getStageMessage()}
-              </motion.p>
-
-              {/* Loading Dots */}
-              <div className="flex items-center gap-2">
-                {[0, 1, 2].map((index) => (
-                  <motion.div
-                    key={index}
-                    className="w-2.5 h-2.5 bg-black rounded-full"
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.3, 1, 0.3],
-                    }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      delay: index * 0.2,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="py-4">
-              <p className="text-sm font-medium text-gray-600">
-                {getStageMessage()}
-              </p>
+                className="h-full w-1/2 rounded-full bg-gradient-to-r from-transparent via-[#6A5EE5] to-transparent opacity-90"
+                style={{ filter: 'drop-shadow(0 0 4px rgba(106,94,229,0.9))' }}
+                animate={{ x: ['-70%', '250%'] }}
+                transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
+              />
             </div>
           )}
-        </motion.div>
-      )}
+
+          <div className="relative z-10 grid grid-cols-4 gap-2">
+            {stages.map((stageItem, index) => {
+              const isCompleted = currentStageIndex > index;
+              const isCurrent = currentStageIndex === index;
+              const isPending = currentStageIndex < index;
+              const StageIcon = stageItem.icon;
+
+              return (
+                <div key={stageItem.id} className="flex flex-col items-center text-center">
+                  <motion.div
+                    className={cn(
+                      'relative mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 transition-all duration-300',
+                      isCompleted && 'border-[#6A5EE5] bg-[#6A5EE5] text-white shadow-lg shadow-[#6A5EE5]/30',
+                      isCurrent && 'border-[#6A5EE5] bg-[#6A5EE5] text-white shadow-lg shadow-[#6A5EE5]/30',
+                      isPending && 'border-gray-300 bg-white text-gray-400'
+                    )}
+                    animate={
+                      isCurrent
+                        ? {
+                            y: [0, -3, 0],
+                            scale: [1, 1.03, 1],
+                          }
+                        : {}
+                    }
+                    transition={{ duration: 1.4, repeat: isCurrent ? Infinity : 0, ease: 'easeInOut' }}
+                  >
+                    {isCurrent && isLoading && (
+                      <motion.div
+                        className="absolute inset-0 rounded-2xl border-2 border-[#6A5EE5]/40"
+                        animate={{ scale: [1, 1.15], opacity: [0.6, 0] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeOut' }}
+                      />
+                    )}
+
+                    {isCompleted ? (
+                      <Check className="h-7 w-7" />
+                    ) : (
+                      <StageIcon className="h-7 w-7" />
+                    )}
+                  </motion.div>
+
+                  <p
+                    className={cn(
+                      'text-sm md:text-base font-semibold transition-colors duration-300',
+                      (isCompleted || isCurrent) && 'text-black',
+                      isPending && 'text-gray-400'
+                    )}
+                  >
+                    {t[stageItem.label as keyof typeof t]}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">0{index + 1}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {stage !== 'idle' && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto max-w-2xl rounded-2xl border border-gray-200 bg-white/90 px-6 py-6 text-center"
+          >
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-5">
+                <motion.div
+                  className="relative flex h-28 w-28 items-center justify-center rounded-3xl bg-black text-white"
+                  animate={{ rotate: [0, 2, -2, 0] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <motion.div
+                    className="absolute -inset-2 rounded-[1.75rem] border-2 border-dashed border-gray-400"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <LoadingIcon className="h-12 w-12" />
+                </motion.div>
+
+                <motion.p
+                  className="text-lg md:text-xl font-semibold text-gray-900"
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {getStageMessage()}
+                </motion.p>
+
+                <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-gray-200">
+                  <motion.div
+                    className="h-full w-1/3 rounded-full bg-black"
+                    animate={{ x: ['-20%', '240%'] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black text-white">
+                  <Check className="h-7 w-7" />
+                </div>
+                <p className="text-base md:text-lg font-semibold text-gray-700">{getStageMessage()}</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   );
 }
