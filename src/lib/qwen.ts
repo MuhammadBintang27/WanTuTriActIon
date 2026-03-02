@@ -106,7 +106,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 1,
       "scene_type": "problem",
       "title": "Scene title describing the situation",
-      "visual_description": "Describe the scene setting, environment, mood, and what's happening. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
+      "visual_description": "[Subject]: [character in specific situation with problem], [action happening], [environmental context]. [Visual Style]: professional photography, photojournalistic documentary style, candid moment. [Composition]: medium shot with shallow depth of field, natural framing, rule of thirds. [Lighting]: soft natural window lighting with gentle shadows, realistic light falloff. [Color]: natural palette, accurate skin tones, realistic saturation. [Technical]: high resolution, sharp focus, natural bokeh, 35mm photography aesthetic. NO illustration, painting, digital art, or AI look - MUST be photorealistic.",
       "action": "Physical action/movement of characters",
       "dialogue": "Character dialogue with emotion markers",
       "characters": [
@@ -120,7 +120,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 2,
       "scene_type": "climax",
       "title": "Scene title",
-      "visual_description": "Describe the scene setting, environment, mood, and dramatic moment. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
+      "visual_description": "[Subject]: [character at dramatic peak], [intense action], [emotional environment]. [Visual Style]: professional photography, photojournalistic documentary style, dramatic candid. [Composition]: dynamic framing capturing emotion, shallow depth of field, environmental context. [Lighting]: dramatic natural lighting with realistic shadows and contrast. [Color]: natural palette with emotional tone, accurate skin tones. [Technical]: high resolution, sharp focus, natural bokeh, 35mm photography aesthetic. NO illustration, painting, digital art, or AI look - MUST be photorealistic.",
       "action": "Physical action/movement",
       "dialogue": "Character dialogue",
       "characters": [...]
@@ -129,7 +129,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 3,
       "scene_type": "resolution",
       "title": "Scene title with product promotion",
-      "visual_description": "Describe the scene setting, product placement, mood, and resolution. Include DSLR camera angle (eye-level, natural perspective), natural lighting (golden hour, soft window light, or studio lighting). Focus on surroundings and atmosphere - avoid mentioning AI-generated look. MUST look 100% like real photography.",
+      "visual_description": "[Subject]: [character with product], [confident action], [resolution setting]. [Visual Style]: professional photography, photojournalistic style, authentic moment. [Composition]: product-aware framing, shallow depth of field, natural positioning. [Lighting]: flattering natural lighting with realistic shadows. [Color]: natural vibrant palette, accurate skin tones, product colors true to life. [Technical]: high resolution, sharp focus, natural bokeh, 35mm photography aesthetic. NO illustration, painting, digital art, or AI look - MUST be photorealistic.",
       "action": "Physical action showing product usage",
       "dialogue": "Promotional dialogue with call-to-action",
       "characters": [...]
@@ -138,24 +138,22 @@ Important: Response MUST be valid JSON:`;
 }`;
 
   const instructions = language === 'id'
-    ? `
-Instruksi Penting:
+    ? `Instruksi Penting:
 - Format video: 9:16 portrait untuk TikTok/Reels (bukan landscape)
 - Drama harus LUCU dan DRAMATIS seperti sinetron Cina
 - Setiap adegan harus memiliki minimal 1 karakter dengan deskripsi visual lengkap
 - Dialog harus emosional dan ekspresif
 - Produk/bisnis harus dipromosikan di adegan 3 dengan jelas
 - Gunakan bahasa Indonesia yang natural dan engaging
-- KAMERA: Gunakan sudut kamera DSLR realistis, seperti diambil oleh fotografer profesional dengan kamera Canon/Nikon. Hindari sudut kamera yang terlalu sempurna atau "terlalu AI". Gunakan sudut mata manusia normal, sedikit shake natural, pencahayaan alami seperti golden hour atau studio lighting profesional. 100% realistis seperti kehidupan nyata.`
-    : `
-Important Instructions:
+- REALISTIC PHOTOGRAPHY - Deskripsi visual HARUS mengikuti formula Subject + Visual Style + Composition + Lighting + Color + Technical. Gaya professional photography, photojournalistic, documentary realism. Komposisi medium shot, shallow depth of field, natural framing. Pencahayaan soft natural window light, realistic shadows. Warna natural palette, accurate skin tones. Teknis high resolution, sharp focus, 35mm aesthetic. ABSOLUT TIDAK BOLEH terlihat seperti illustration, painting, digital art, atau AI.`
+    : `Important Instructions:
 - Video format: 9:16 portrait for TikTok/Reels (not landscape)
 - Drama must be FUNNY and DRAMATIC like Chinese soap operas
 - Each scene must have at least 1 character with complete visual description
 - Dialogue should be emotional and expressive
 - Product/business must be promoted clearly in scene 3
 - Use natural and engaging English
-- CAMERA: Use realistic DSLR camera angles, like shot by a professional photographer with Canon/Nikon camera. Avoid overly perfect or "too AI" camera angles. Use normal human eye level angles, slight natural shake, natural lighting like golden hour or professional studio lighting. 100% realistic like real life photography.`;
+- REALISTIC PHOTOGRAPHY - Visual descriptions MUST follow formula Subject + Visual Style + Composition + Lighting + Color + Technical. Style professional photography, photojournalistic, documentary realism. Composition medium shot, shallow depth of field, natural framing. Lighting soft natural window light, realistic shadows. Color natural palette, accurate skin tones. Technical high resolution, sharp focus, 35mm aesthetic. ABSOLUTELY MUST NOT look like illustration, painting, digital art, or AI.`;
 
   return basePrompt + '\n\n' + jsonStructure + '\n' + instructions;
 }
