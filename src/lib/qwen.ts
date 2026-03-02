@@ -394,12 +394,18 @@ If the image contains a person face, treat it as a fixed identity anchor and kee
 
 function parseScriptResponse(content: string): Scene[] {
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const extractedJson = extractJsonObject(content);
+    if (!extractedJson) {
       throw new Error('No JSON found in response');
     }
-    
-    const parsed: QwenScriptResponse & { error?: string; message?: string } = JSON.parse(jsonMatch[0]);
+
+    let parsed: QwenScriptResponse & { error?: string; message?: string };
+    try {
+      parsed = JSON.parse(extractedJson);
+    } catch {
+      const repairedJson = sanitizeJsonStringControlChars(extractedJson);
+      parsed = JSON.parse(repairedJson);
+    }
     
     // Check for sensitive character error
     if (parsed.error || parsed.message) {
@@ -442,6 +448,72 @@ function parseScriptResponse(content: string): Scene[] {
     }
     throw new Error('Failed to parse script from Qwen API response');
   }
+}
+
+function extractJsonObject(text: string): string | null {
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    return null;
+  }
+
+  return text.slice(firstBrace, lastBrace + 1);
+}
+
+function sanitizeJsonStringControlChars(rawJson: string): string {
+  let result = '';
+  let inString = false;
+  let escaping = false;
+
+  for (let index = 0; index < rawJson.length; index += 1) {
+    const char = rawJson[index];
+
+    if (escaping) {
+      result += char;
+      escaping = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      result += char;
+      if (inString) {
+        escaping = true;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    if (inString) {
+      const charCode = char.charCodeAt(0);
+
+      if (char === '\n') {
+        result += '\\n';
+        continue;
+      }
+      if (char === '\r') {
+        result += '\\r';
+        continue;
+      }
+      if (char === '\t') {
+        result += '\\t';
+        continue;
+      }
+      if (charCode >= 0 && charCode <= 31) {
+        result += `\\u${charCode.toString(16).padStart(4, '0')}`;
+        continue;
+      }
+    }
+
+    result += char;
+  }
+
+  return result;
 }
 
 export async function mockGenerateScript(

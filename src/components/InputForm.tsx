@@ -119,7 +119,7 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
   };
 
   return (
-    <section id="input-section" className="h-screen flex flex-col justify-center bg-gradient-to-br from-gray-50 to-white py-12">
+    <section id="input-section" className="h-screen flex flex-col justify-center bg-gradient-to-br from-gray-50 to-white py-12 lg:pt-0">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Title and Robot Image */}
         <motion.div

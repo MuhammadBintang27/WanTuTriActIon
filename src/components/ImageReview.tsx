@@ -122,7 +122,7 @@ export default function ImageReview({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-sm border-l-[3px] border-gray-300 p-6 relative"
+              className="bg-white rounded-xl shadow-sm border-l-[3px] border-[#6A5EE5] p-6 relative"
             >
               {/* Scene Number - Large with vertical line */}
               <div className="absolute left-6 top-6">

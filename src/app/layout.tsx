@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AI Drama Generator - Text to Video",
   description: "Transform your ideas into captivating 3-scene drama videos using AI. Powered by Qwen LLM and Wan AI.",
+  icons: {
+    icon: "/image/LogoSaja.png?v=2",
+    shortcut: "/image/LogoSaja.png?v=2",
+    apple: "/image/LogoSaja.png?v=2",
+  },
 };
 
 export default function RootLayout({

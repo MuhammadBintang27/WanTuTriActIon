@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import HeroSection from '@/components/HeroSection';
 import BrandingBar from '@/components/BrandingBar';
 import HowItWorks from '@/components/HowItWorks';
@@ -35,6 +36,62 @@ export default function Home() {
   const [promptLang, setPromptLang] = useState<'id' | 'en' | 'zh'>('en');
   const [referenceImage, setReferenceImage] = useState<string>('');
   const [referenceImagesMeta, setReferenceImagesMeta] = useState<ReferenceImageMeta[]>([]);
+
+  const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavClick = (targetId?: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    if (!targetId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const targetElement = document.getElementById(targetId);
+    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const navTranslations = {
+    en: {
+      home: 'Home',
+      features: 'Features',
+      guide: 'Guide',
+    },
+    id: {
+      home: 'Beranda',
+      features: 'Fitur',
+      guide: 'Panduan',
+    },
+    zh: {
+      home: '首页',
+      features: '功能',
+      guide: '指南',
+    },
+  } as const;
+
+  const nav = navTranslations[uiLang];
+
+  const partnerLogos: Array<{
+    src: string;
+    alt: string;
+    width: number;
+    cardClassName?: string;
+    imageClassName?: string;
+  }> = [
+    { src: '/image/Alibaba_Cloud_Logo.png', alt: 'Alibaba Cloud', width: 120 },
+    { src: '/image/Logo_Qwen.png', alt: 'Qwen', width: 90 },
+    { src: '/image/Logo_Wan.png', alt: 'Wan', width: 90 },
+    {
+      src: '/image/Logo_BluePower.png',
+      alt: 'BluePower',
+      width: 120,
+      cardClassName: 'px-3',
+      imageClassName: 'h-7 w-auto object-contain',
+    },
+  ];
 
   // Handler: Submit input form and generate script
   const handleInputSubmit = async (prompt: string, images: string[]) => {
@@ -343,25 +400,39 @@ export default function Home() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">
-                WanTuTri Action
-              </span>
-            </div>
+            <Link href="/" onClick={handleLogoClick} className="flex items-center" aria-label="Go to home">
+              <Image
+                src="/image/LOGO.png"
+                alt="WanTuTri AI"
+                width={220}
+                height={56}
+                className="h-12 w-auto object-contain"
+                priority
+              />
+            </Link>
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              <a href="#" className="text-base font-medium text-gray-900 hover:text-blue-600 transition-colors">
-                Home
+              <a
+                href="/"
+                onClick={handleNavClick()}
+                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
+              >
+                {nav.home}
               </a>
-              <a href="#features" className="text-base font-medium text-gray-600 hover:text-blue-600 transition-colors">
-                Features
+              <a
+                href="/"
+                onClick={handleNavClick('input-section')}
+                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
+              >
+                {nav.features}
               </a>
-              <a href="#about" className="text-base font-medium text-gray-600 hover:text-blue-600 transition-colors">
-                About
+              <a
+                href="/"
+                onClick={handleNavClick('how-it-works')}
+                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
+              >
+                {nav.guide}
               </a>
             </nav>
 
@@ -512,22 +583,19 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-16 bg-gray-100 border-t border-gray-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 items-start">
             {/* Column 1: About */}
-            <div>
+            <div className="md:col-span-3">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
-                WanTuTri Action
+                WanTuTri AI
               </h3>
               <p className="text-gray-600 text-sm leading-relaxed mb-6">
                 AI-powered platform to turn ideas into cinematic scripts and ready-to-generate video content.
               </p>
-              <p className="text-gray-500 text-sm">
-                Powered by Qwen & Wan — Alibaba AI
-              </p>
             </div>
 
             {/* Column 2: Features */}
-            <div>
+            <div className="md:col-span-2">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 Features
               </h3>
@@ -540,21 +608,54 @@ export default function Home() {
             </div>
 
             {/* Column 3: Contact */}
-            <div>
+            <div className="md:col-span-2 md:pl-3">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 Contact
               </h3>
               <ul className="space-y-2 text-gray-600 text-sm">
-                <li>Email: Geutanyoe@gmail.com</li>
+                <li className="whitespace-nowrap">Email: Geutanyoe@gmail.com</li>
                 <li>Available 24/7</li>
               </ul>
+            </div>
+
+            {/* Column 4: Powered By */}
+            <div className="md:col-span-5 md:flex md:flex-col md:items-end md:text-right">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Powered by
+              </h3>
+              <p className="text-gray-500 text-sm mb-4">
+                Supported by our technology partners
+              </p>
+
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white/70 p-3 w-full md:max-w-[520px] md:ml-auto">
+                <motion.div
+                  className="flex w-max items-center gap-3"
+                  animate={{ x: ['0%', '-50%'] }}
+                  transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
+                >
+                  {[...partnerLogos, ...partnerLogos].map((logo, index) => (
+                    <div
+                      key={`${logo.alt}-${index}`}
+                      className={`h-12 px-4 rounded-xl border border-gray-200 bg-white flex items-center justify-center ${logo.cardClassName ?? ''}`}
+                    >
+                      <Image
+                        src={logo.src}
+                        alt={logo.alt}
+                        width={logo.width}
+                        height={26}
+                        className={logo.imageClassName ?? 'h-6 w-auto object-contain'}
+                      />
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
             </div>
           </div>
 
           {/* Copyright */}
           <div className="pt-8 border-t border-gray-300">
             <p className="text-center text-gray-500 text-sm">
-              © 2026 WanTuTri Action. All rights reserved.
+              © 2026 WanTuTri AI. All rights reserved.
             </p>
           </div>
         </div>

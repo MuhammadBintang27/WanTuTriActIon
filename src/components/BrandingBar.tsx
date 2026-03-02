@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 
 interface BrandingBarProps {
   uiLang: 'en' | 'id' | 'zh';
@@ -23,7 +22,7 @@ export default function BrandingBar({ uiLang }: BrandingBarProps) {
   const t = translations[uiLang];
 
   // Duplicate text for seamless marquee
-  const marqueeText = Array(8).fill(t.text).join(' • ');
+  const marqueeText = Array(8).fill(`\u00A0\u00A0${t.text}\u00A0\u00A0`).join(' • ');
 
   return (
     <section className="py-6 bg-black border-y border-gray-800 overflow-hidden">
@@ -40,7 +39,7 @@ export default function BrandingBar({ uiLang }: BrandingBarProps) {
         >
           {Array(2).fill(marqueeText).map((text, i) => (
             <div key={i} className="flex items-center gap-6">
-              <p className="font-integral-cf text-xl md:text-2xl lg:text-3xl font-black text-white tracking-wider">
+              <p className="font-integral-cf px-6 md:px-8 text-2xl md:text-3xl lg:text-4xl leading-none font-black text-white tracking-wider">
                 {text}
               </p>
             </div>

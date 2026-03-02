@@ -149,7 +149,7 @@ export default function ScriptEditor({
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{t.title}</h2>
+          <h2 className="font-integral-cf text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t.title}</h2>
           <p className="text-gray-600 max-w-3xl mx-auto">{t.description}</p>
         </motion.div>
 
@@ -173,7 +173,7 @@ export default function ScriptEditor({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl p-6 border-l-[3px] border-gray-300 shadow-sm relative"
+                className="bg-white rounded-xl p-6 border-l-[3px] border-[#6A5EE5] shadow-sm relative"
               >
                 {/* Scene Number - Large with vertical line */}
                 <div className="absolute left-6 top-6">
