@@ -18,10 +18,15 @@ const IMAGE_CALL_INTERVAL = 3000; // Minimum 3 seconds between calls
 export function buildImagePrompt(
   sceneDescription: string,
   action: string,
-  characters: { name: string; visual_description: string }[]
+  characters: { name: string; visual_description: string }[],
+  referenceHints?: string,
+  productIdentityLock?: string
 ): string {
-  // Extract character descriptions
+  // Extract character descriptions and lock character anchors for continuity
   const characterDesc = characters.map(c => c.visual_description).join('; ');
+  const characterAnchor = characters
+    .map(c => `${c.name}: ${c.visual_description}`)
+    .join(' | ');
   
   // PROFESSIONAL PHOTOGRAPHY PROMPT FORMULA - 100% REALISTIC
   // [Subject] + [Visual Style] + [Composition] + [Lighting] + [Color] + [Technical]
@@ -32,8 +37,13 @@ export function buildImagePrompt(
   const lighting = 'soft natural window lighting with gentle shadows, realistic light falloff, practical light sources only';
   const color = 'natural color palette, accurate skin tones, realistic saturation, no color grading artifacts';
   const technical = 'high resolution, sharp focus on subject, natural bokeh, realistic texture detail, 35mm photography aesthetic';
+  const continuityLock = `character continuity lock: preserve identical face identity, age, skin tone, hairstyle, core outfit, and signature prop for recurring characters across all scenes. anchor references: ${characterAnchor}`;
+  const productLock = productIdentityLock
+    ? `product identity lock: use EXACTLY the same product as reference (${productIdentityLock}). Keep the same brand/logo text, packaging shape, cap/lid shape, label layout, dominant colors, and material finish. Do not replace, redesign, or restyle the product.`
+    : '';
   
-  const realisticPrompt = `${subject}, ${visualStyle}, ${composition}, ${lighting}, ${color}, ${technical}`.trim();
+  const referenceLock = referenceHints ? `reference guidance: ${referenceHints}` : '';
+  const realisticPrompt = `${subject}, ${visualStyle}, ${composition}, ${lighting}, ${color}, ${technical}, ${continuityLock}, ${productLock}, ${referenceLock}`.trim();
   
   return realisticPrompt;
 }
@@ -77,8 +87,8 @@ export async function generateImage(
           ]
         },
         parameters: {
-          negative_prompt: 'illustration, painting, drawing, cartoon, anime, CGI, 3D render, digital art, synthetic, plastic skin, doll-like, uncanny valley, oversaturated, oversharpened, artificial lighting, flat lighting, video game, computer generated, fake, unrealistic proportions, smooth plastic, wax figure, mannequin, doll face, anime eyes, cartoonish, digital painting, vector art, clipart, stock photo, overly perfect, Instagram filter, beauty filter, airbrushed, plastic surgery look, green screen, chroma key, composited, fake shadows, artificial colors, AI artifacts, watermark, text, logo',
-          prompt_extend: true,
+          negative_prompt: 'illustration, painting, drawing, cartoon, anime, CGI, 3D render, digital art, synthetic, plastic skin, doll-like, uncanny valley, oversaturated, oversharpened, artificial lighting, flat lighting, video game, computer generated, fake, unrealistic proportions, smooth plastic, wax figure, mannequin, doll face, anime eyes, cartoonish, digital painting, vector art, clipart, stock photo, overly perfect, Instagram filter, beauty filter, airbrushed, plastic surgery look, green screen, chroma key, composited, fake shadows, artificial colors, AI artifacts, watermark, text, logo, wrong product, different product, altered packaging, changed logo, different label text, different brand name',
+          prompt_extend: false,
           watermark: false,
           n: 1,
           size: '720*1280' // 9:16 aspect ratio for TikTok/Reels
@@ -158,8 +168,9 @@ export async function generateVideo(
   imageUrl: string,
   action: string,
   dialogue: string,
-  duration: number = 2,
-  referenceImageBase64?: string
+  duration: number = 5,
+  referenceImageBase64?: string,
+  sceneVisualDescription?: string
 ): Promise<string> {
   // Rate limiting
   const now = Date.now();
@@ -168,17 +179,13 @@ export async function generateVideo(
     await new Promise(resolve => setTimeout(resolve, VIDEO_CALL_INTERVAL - timeSinceLastCall));
   }
   lastVideoCall = Date.now();
-  
-  // Calculate appropriate duration based on dialogue length
-  // Average speaking rate: ~150 words per minute = ~2.5 words per second
-  // Add buffer for action completion
-  const wordCount = dialogue.split(/\s+/).filter(w => w.length > 0).length;
-  const estimatedDuration = Math.ceil((wordCount / 2) + 2); // +2 seconds buffer for action
-  const finalDuration = Math.min(Math.max(estimatedDuration, 2), 3); // Min 5s, Max 10s
+
+  const finalDuration = Math.max(5, Math.min(duration, 10));
+  const hasReferenceImage = Boolean(referenceImageBase64 && referenceImageBase64.length > 100);
   
   return retryWithBackoff(async () => {
     // Build prompt that aligns video motion with action and dialogue
-    const motionPrompt = buildVideoPrompt(action, dialogue);
+    const motionPrompt = buildVideoPrompt(action, dialogue, hasReferenceImage, sceneVisualDescription);
     
     // Build input - I2V model requires img_url for the input image
     const input: any = {
@@ -221,36 +228,65 @@ export async function generateVideo(
   });
 }
 
-function buildVideoPrompt(action: string, dialogue: string): string {
+function buildVideoPrompt(
+  action: string,
+  dialogue: string,
+  hasReferenceImage: boolean = false,
+  sceneVisualDescription?: string
+): string {
   // Extract key actions from the action description
   const actionKeywords = action.toLowerCase();
   
   // Build motion prompt that matches the action
   let motionDescription = '';
   
-  if (actionKeywords.includes('talk') || actionKeywords.includes('speak')) {
+  if (actionKeywords.includes('talk') || actionKeywords.includes('speak') || actionKeywords.includes('bicara') || actionKeywords.includes('ngobrol') || actionKeywords.includes('berkata')) {
     motionDescription = 'character talking with natural mouth movements and hand gestures, expressive facial expressions matching dialogue';
-  } else if (actionKeywords.includes('walk') || actionKeywords.includes('run')) {
+  } else if (actionKeywords.includes('walk') || actionKeywords.includes('run') || actionKeywords.includes('jalan') || actionKeywords.includes('berjalan') || actionKeywords.includes('lari')) {
     motionDescription = 'character walking naturally with fluid body movement, realistic leg and arm motion';
-  } else if (actionKeywords.includes('hold') || actionKeywords.includes('carry')) {
+  } else if (actionKeywords.includes('hold') || actionKeywords.includes('carry') || actionKeywords.includes('pegang') || actionKeywords.includes('membawa')) {
     motionDescription = 'character holding object with natural hand movements, slight body sway, realistic grip';
-  } else if (actionKeywords.includes('cry') || actionKeywords.includes('sad')) {
+  } else if (actionKeywords.includes('cry') || actionKeywords.includes('sad') || actionKeywords.includes('menangis') || actionKeywords.includes('sedih')) {
     motionDescription = 'character showing sad emotion with tearful eyes, wiping tears, emotional body language';
-  } else if (actionKeywords.includes('laugh') || actionKeywords.includes('happy')) {
+  } else if (actionKeywords.includes('laugh') || actionKeywords.includes('happy') || actionKeywords.includes('tertawa') || actionKeywords.includes('bahagia')) {
     motionDescription = 'character laughing joyfully with bright smile, energetic body movement, expressive happiness';
-  } else if (actionKeywords.includes('surprise') || actionKeywords.includes('shock')) {
+  } else if (actionKeywords.includes('surprise') || actionKeywords.includes('shock') || actionKeywords.includes('kaget') || actionKeywords.includes('terkejut')) {
     motionDescription = 'character showing surprised expression with wide eyes, hands near face, sudden body reaction';
   } else {
     motionDescription = 'character moving naturally with subtle body movements, realistic breathing motion, lifelike gestures';
   }
   
   // Add dialogue context if available
-  if (dialogue && dialogue.length > 10) {
+  const normalizedDialogue = normalizeDialogueForPrompt(dialogue);
+  if (normalizedDialogue.length > 10) {
     const emotion = extractEmotionFromDialogue(dialogue);
     motionDescription += `, ${emotion} emotional tone matching the dialogue context`;
   }
-  
-  return motionDescription;
+
+  const realismLock = 'photorealistic live-action video, natural skin texture, physically plausible motion, realistic eye blink and breathing cadence';
+  const stabilityLock = 'no identity drift, no face morphing, no extra fingers, no anatomy deformation, no jitter, no flicker, no sudden camera jump';
+  const cameraLock = 'single continuous shot, stable handheld feel, subtle camera motion only, natural motion blur';
+  const identityLock = hasReferenceImage
+    ? 'strictly preserve the same identity from reference face image and first frame'
+    : 'strictly preserve the same identity from the first frame';
+  const lipSyncLock = normalizedDialogue.length > 0
+    ? `accurate lip synchronization to spoken dialogue timing, mouth articulation follows phonemes naturally, spoken content: ${normalizedDialogue}`
+    : 'mouth remains naturally closed or minimally moving when there is no spoken dialogue';
+  const sceneContext = sceneVisualDescription && sceneVisualDescription.trim().length > 0
+    ? `scene context to preserve: ${sceneVisualDescription.trim()}`
+    : '';
+  const explicitDirectives = `follow this scene action exactly: ${action || 'subtle natural idle movement'}, align performance tone with this dialogue: ${normalizedDialogue || 'no spoken dialogue'}`;
+
+  return `${sceneContext}, ${explicitDirectives}, ${motionDescription}, ${realismLock}, ${cameraLock}, ${stabilityLock}, ${identityLock}, ${lipSyncLock}`;
+}
+
+function normalizeDialogueForPrompt(dialogue: string): string {
+  return dialogue
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 240);
 }
 
 function extractEmotionFromDialogue(dialogue: string): string {

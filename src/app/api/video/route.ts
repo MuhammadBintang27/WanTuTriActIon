@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateVideo, mergeVideos } from '@/lib/wanai';
+import { ReferenceImageMeta } from '@/types';
 
 interface SceneVideoData {
   imageUrl: string;
+  visualDescription: string;
   action: string;
   dialogue: string;
 }
@@ -10,6 +12,7 @@ interface SceneVideoData {
 interface VideoRequest {
   scenes: SceneVideoData[];
   referenceImage?: string;
+  referenceImages?: ReferenceImageMeta[];
 }
 
 // Rate limiting
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
     lastCallTime = Date.now();
 
-    const { scenes, referenceImage }: VideoRequest = await request.json();
+    const { scenes, referenceImage, referenceImages }: VideoRequest = await request.json();
 
     if (!Array.isArray(scenes) || scenes.length === 0) {
       return NextResponse.json(
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     const videoUrls: { url: string; sceneIndex: number }[] = [];
     
     for (let i = 0; i < scenes.length; i++) {
-      const { imageUrl, action, dialogue } = scenes[i];
+      const { imageUrl, visualDescription, action, dialogue } = scenes[i];
       
       if (!imageUrl) {
         continue;
@@ -48,13 +51,19 @@ export async function POST(request: NextRequest) {
       // Generate video with action and dialogue context
       // Pass reference image to ensure visual consistency with Step 2
       let referenceBase64: string | undefined;
-      if (referenceImage) {
-        const base64Match = referenceImage.match(/^data:image\/[^;]+;base64,(.+)$/);
+      const preferredReference =
+        referenceImage ||
+        referenceImages?.find((item) => item.type === 'character' && item.image)?.image ||
+        referenceImages?.[0]?.image;
+
+      if (preferredReference) {
+        const base64Match = preferredReference.match(/^data:image\/[^;]+;base64,(.+)$/);
         if (base64Match) {
           referenceBase64 = base64Match[1];
         }
       }
-      const videoUrl = await generateVideo(imageUrl, action, dialogue, 5, referenceBase64);
+      const sceneDuration = estimateSceneDuration(action, dialogue);
+      const videoUrl = await generateVideo(imageUrl, action, dialogue, sceneDuration, referenceBase64, visualDescription);
       videoUrls.push({ url: videoUrl, sceneIndex: i });
       
       // Add delay between calls for token efficiency
@@ -90,4 +99,21 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function estimateSceneDuration(action: string, dialogue: string): number {
+  const normalizedDialogue = dialogue
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const wordCount = normalizedDialogue.length > 0
+    ? normalizedDialogue.split(' ').filter(Boolean).length
+    : 0;
+
+  const hasRichAction = action.length > 80;
+  const estimated = Math.ceil(wordCount / 2.2) + (hasRichAction ? 2 : 1);
+
+  return Math.max(5, Math.min(estimated, 10));
 }

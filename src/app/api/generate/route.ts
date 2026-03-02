@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
 async function generateDrama(
   prompt: string,
-  language: 'id' | 'en',
+  language: 'id' | 'en' | 'zh',
   image?: string
 ): Promise<GenerateResponse> {
   const scenes = await generateScriptStep(prompt, language, image);
@@ -58,10 +58,11 @@ async function generateDrama(
 
 async function generateScriptStep(
   prompt: string,
-  language: 'id' | 'en',
+  language: 'id' | 'en' | 'zh',
   image?: string
 ): Promise<Scene[]> {
-  console.log(`[Step 1/4] Generating script in ${language === 'id' ? 'Indonesian' : 'English'}...`);
+  const languageLabel = language === 'id' ? 'Indonesian' : language === 'zh' ? 'Chinese' : 'English';
+  console.log(`[Step 1/4] Generating script in ${languageLabel}...`);
   
   try {
     const scenes = await mockGenerateScript(prompt, language);

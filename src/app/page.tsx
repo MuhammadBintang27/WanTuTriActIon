@@ -11,7 +11,7 @@ import ScriptEditor from '@/components/ScriptEditor';
 import ImageReview from '@/components/ImageReview';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { GenerationStage, Scene, SceneType } from '@/types';
+import { GenerationStage, ReferenceImageMeta, Scene, SceneType } from '@/types';
 import { detectLanguage } from '@/lib/utils';
 
 interface SceneWithImage extends Scene {
@@ -32,7 +32,9 @@ export default function Home() {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [currentGeneratingScene, setCurrentGeneratingScene] = useState(0);
-  const [promptLang, setPromptLang] = useState<'id' | 'en'>('en');
+  const [promptLang, setPromptLang] = useState<'id' | 'en' | 'zh'>('en');
+  const [referenceImage, setReferenceImage] = useState<string>('');
+  const [referenceImagesMeta, setReferenceImagesMeta] = useState<ReferenceImageMeta[]>([]);
 
   // Handler: Submit input form and generate script
   const handleInputSubmit = async (prompt: string, images: string[]) => {
@@ -53,10 +55,32 @@ export default function Home() {
     setPromptLang(detectedLang);
 
     try {
+      let classifiedReferences: ReferenceImageMeta[] = [];
+      if (images.length > 0) {
+        const classifyResponse = await fetch('/api/reference-classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            images,
+            prompt,
+            language: detectedLang,
+          }),
+        });
+
+        if (classifyResponse.ok) {
+          const classifyData = await classifyResponse.json();
+          classifiedReferences = classifyData?.data?.referenceImages || [];
+        }
+      }
+
       // Strip data URL prefix from images if present (data:image/...;base64,)
       // Use first image for script generation (API expects single image)
       const firstImage = images.length > 0 ? images[0] : null;
       const imageBase64 = firstImage ? (firstImage.includes(',') ? firstImage.split(',')[1] : firstImage) : null;
+      setReferenceImagesMeta(classifiedReferences);
+
+      const characterRef = classifiedReferences.find((ref) => ref.type === 'character' && ref.image);
+      setReferenceImage((characterRef?.image as string) || firstImage || '');
       
       const response = await fetch('/api/script', {
         method: 'POST',
@@ -64,6 +88,7 @@ export default function Home() {
         body: JSON.stringify({ 
           prompt, 
           image: imageBase64,
+          referenceImages: classifiedReferences,
           language: detectedLang,
         }),
       });
@@ -118,6 +143,8 @@ export default function Home() {
       },
     ];
     setScenes(emptyScenes);
+    setReferenceImagesMeta([]);
+    setReferenceImage('');
     setStage('script_review');
     
     // Scroll to script editor
@@ -155,7 +182,7 @@ export default function Home() {
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenes: scenesData }),
+        body: JSON.stringify({ scenes: scenesData, referenceImage, referenceImages: referenceImagesMeta }),
       });
 
       if (!response.ok) {
@@ -213,6 +240,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scenes: [sceneData],
+          referenceImage,
+          referenceImages: referenceImagesMeta,
           regenerateOnly: true,
         }),
       });
@@ -270,6 +299,7 @@ export default function Home() {
       // Map scenes to API format for video generation
       const videoScenes = scenes.map((scene) => ({
         imageUrl: scene.imageUrl || '',
+        visualDescription: scene.visual_description,
         action: scene.action,
         dialogue: scene.dialogue,
       }));
@@ -277,7 +307,7 @@ export default function Home() {
       const response = await fetch('/api/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenes: videoScenes }),
+        body: JSON.stringify({ scenes: videoScenes, referenceImage, referenceImages: referenceImagesMeta }),
       });
 
       if (!response.ok) {
@@ -378,7 +408,6 @@ export default function Home() {
       {/* Marketing Sections */}
       <HeroSection uiLang={uiLang} />
       <BrandingBar uiLang={uiLang} />
-      <HowItWorks uiLang={uiLang} />
 
       {/* Application Sections */}
       <InputForm
@@ -477,6 +506,8 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <HowItWorks uiLang={uiLang} />
 
       {/* Footer */}
       <footer className="py-16 bg-gray-100 border-t border-gray-300">

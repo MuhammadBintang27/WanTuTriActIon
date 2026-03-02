@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Integral CF";
+  src: local("Integral CF"),
+       local("IntegralCF"),
+       url("/fonts/integral-cf/IntegralCF-Regular.woff2") format("woff2"),
+       url("/fonts/integral-cf/IntegralCF-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Integral CF";
+  src: local("Integral CF Extra Bold"),
+       local("IntegralCF-ExtraBold"),
+       local("Integral CF"),
+       local("IntegralCF"),
+       url("/fonts/integral-cf/IntegralCF-ExtraBold.woff2") format("woff2"),
+       url("/fonts/integral-cf/IntegralCF-ExtraBold.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -156,6 +180,10 @@ body {
 }
 
 @layer utilities {
+  .font-integral-cf {
+    font-family: "Integral CF", "IntegralCF", var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  }
+
   .transform-3d {
     transform-style: preserve-3d;
   }

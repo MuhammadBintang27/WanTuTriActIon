@@ -1,4 +1,4 @@
-import { Scene, QwenScriptResponse } from '@/types';
+import { Scene, QwenScriptResponse, ReferenceImageMeta, ReferenceImageType } from '@/types';
 import { retryWithBackoff } from './utils';
 
 // Alibaba Cloud Model Studio API Configuration
@@ -8,14 +8,16 @@ const MODEL_STUDIO_API_URL = process.env.MODEL_STUDIO_API_URL || 'https://dashsc
 
 // Model IDs
 const QWEN_MODEL = 'qwen3.5-35b-a3b'; // Text to Scene model (lowercase)
+const QWEN_VL_MODEL = 'qwen-vl-max-latest'; // Vision model for reference image classification
 
 export async function generateScript(
   input: string,
-  language: 'id' | 'en',
-  imageBase64?: string
+  language: 'id' | 'en' | 'zh',
+  imageBase64?: string,
+  referenceImages?: ReferenceImageMeta[]
 ): Promise<Scene[]> {
   return retryWithBackoff(async () => {
-    const prompt = buildPrompt(input, language, imageBase64);
+    const prompt = buildPrompt(input, language, imageBase64, referenceImages);
     
     const response = await fetch(`${MODEL_STUDIO_API_URL}/chat/completions`, {
       method: 'POST',
@@ -55,7 +57,110 @@ export async function generateScript(
   });
 }
 
-function getSystemPrompt(language: 'id' | 'en'): string {
+export async function classifyReferenceImages(
+  images: string[],
+  language: 'id' | 'en' | 'zh'
+): Promise<ReferenceImageMeta[]> {
+  const results: ReferenceImageMeta[] = [];
+
+  for (const image of images) {
+    try {
+      const response = await fetch(`${MODEL_STUDIO_API_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${MODEL_STUDIO_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: QWEN_VL_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content: 'Classify image role for short-video production. Return JSON only with keys: type, summary, confidence. type must be one of: product, character, background, mixed, unknown. If type is product/mixed, summary must include concrete visual anchors: product category, package shape, dominant colors, logo/brand text if visible, label layout, material/finish.'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: buildReferenceClassifierPrompt(language),
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: image,
+                  },
+                },
+              ],
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 300,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Qwen VL API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      const parsed = parseReferenceClassifierResponse(content);
+      results.push({ image, ...parsed });
+    } catch {
+      results.push({
+        image,
+        type: 'unknown',
+        summary: language === 'id' ? 'Gambar referensi tidak dapat diklasifikasikan' : language === 'zh' ? '参考图像无法分类' : 'Reference image could not be classified',
+        confidence: 0,
+      });
+    }
+  }
+
+  return results;
+}
+
+function buildReferenceClassifierPrompt(language: 'id' | 'en' | 'zh'): string {
+  if (language === 'id') {
+    return 'Klasifikasikan gambar ini untuk produksi video 3 scene. Pilih satu type: product (fokus produk), character (fokus wajah/orang), background (fokus tempat/latar), mixed (campuran), unknown. Jika product/mixed, ringkasan WAJIB detail visual produk: kategori produk, bentuk kemasan, warna dominan, teks/logo/brand yang terlihat, layout label, material/finishing. Kembalikan JSON saja: {"type":"...","summary":"...","confidence":0-1}.';
+  }
+  if (language === 'zh') {
+    return '请将该图片分类为以下之一：product（产品为主）、character（人物/人脸为主）、background（场景背景为主）、mixed（混合）、unknown（不明确）。若为product/mixed，summary必须包含产品视觉锚点：品类、包装形状、主色、可见logo/品牌文字、标签布局、材质/表面质感。只返回JSON：{"type":"...","summary":"...","confidence":0-1}。';
+  }
+  return 'Classify this image for 3-scene video production into one type: product (product-focused), character (person/face-focused), background (location-focused), mixed, or unknown. If type is product/mixed, summary MUST include visual anchors: product category, packaging shape, dominant colors, visible logo/brand text, label layout, material/finish. Return JSON only: {"type":"...","summary":"...","confidence":0-1}.';
+}
+
+function parseReferenceClassifierResponse(content: string): Omit<ReferenceImageMeta, 'image'> {
+  try {
+    const text = typeof content === 'string' ? content : JSON.stringify(content);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const raw = jsonMatch ? jsonMatch[0] : '{}';
+    const parsed = JSON.parse(raw) as { type?: string; summary?: string; confidence?: number };
+
+    const allowedTypes: ReferenceImageType[] = ['product', 'character', 'background', 'mixed', 'unknown'];
+    const type = allowedTypes.includes((parsed.type || '').toLowerCase() as ReferenceImageType)
+      ? (parsed.type || 'unknown').toLowerCase() as ReferenceImageType
+      : 'unknown';
+
+    const confidence = typeof parsed.confidence === 'number'
+      ? Math.max(0, Math.min(parsed.confidence, 1))
+      : 0.5;
+
+    return {
+      type,
+      summary: parsed.summary || '',
+      confidence,
+    };
+  } catch {
+    return {
+      type: 'unknown',
+      summary: '',
+      confidence: 0,
+    };
+  }
+}
+
+function getSystemPrompt(language: 'id' | 'en' | 'zh'): string {
   const basePrompt = language === 'id' 
     ? `Anda adalah penulis naskah drama komedi Cina profesional yang ahli dalam marketing. Buat naskah drama komedi 3 adegan untuk promosi produk/bisnis.
 
@@ -75,10 +180,52 @@ STRUKTUR WAJIB (3 ADEGAN):
 2. ADEGAN 2 - PUNCAK MASALAH: Konflik memuncak dengan cara yang dramatis dan lucu
 3. ADEGAN 3 - RESOLUSI & PROMOSI: Produk muncul sebagai solusi dengan promosi yang kuat
 
+KUNCI KONSISTENSI KARAKTER (WAJIB DIPATUHI):
+- Untuk karakter yang sama di scene 1-3, gunakan "name" dan "visual_description" yang SAMA PERSIS (kata demi kata).
+- Jangan ubah umur, bentuk wajah, warna kulit, gaya rambut, outfit inti, atau properti signature untuk karakter yang sama.
+- Jika ada perubahan adegan, hanya ubah pose, ekspresi, kamera, dan lingkungan; JANGAN ubah identitas visual karakter.
+- Setiap "visual_description" karakter wajib memuat anchor ini secara eksplisit: usia, fitur wajah, rambut, outfit, properti (jika ada).
+
 GAYA: Drama Cina yang over-the-top, ekspresif, lucu, dengan plot twist yang menarik.
 
+KUNCI BAHASA OUTPUT (WAJIB):
+- Semua field scene (title, visual_description, action, dialogue) HARUS dalam Bahasa Indonesia.
+- DILARANG mencampur bahasa Inggris/China, kecuali nama brand/produk.
+
 Penting: Respons HARUS dalam format JSON yang valid:`
-    : `You are a professional Chinese comedy drama scriptwriter who is an expert in marketing. Create a 3-scene comedy drama script for product/business promotion.
+  : language === 'zh'
+  ? `你是一位专业的中国喜剧短剧编剧，同时是营销专家。请为产品/业务推广创作3个场景的喜剧短剧脚本。
+
+角色政策（必须遵守）：
+1. 如果用户要求公众人物角色（明星、网红、知名人物）：
+   - 视觉描述要与真人面部高度一致
+   - 详细描述脸部特征、发型、标志性服装与表情
+
+2. 如果用户要求敏感角色（宗教人物、国家元首、恐怖分子或争议人物）：
+   - 拒绝生成并返回原因“SENSITIVE_CHARACTER_DETECTED”
+   - 返回带 error/message 的 JSON，而不是 scenes
+
+3. 虚构/原创角色：给出完整且独特的视觉描述
+
+必需结构（3个场景）：
+1. 场景1 - 问题引入：用有趣方式呈现日常问题
+2. 场景2 - 冲突高潮：冲突戏剧化并带喜剧感地升级
+3. 场景3 - 解决与推广：产品作为解决方案并明确推广
+
+角色一致性锁定（必须遵守）：
+- 同一角色在场景1-3中的 "name" 和 "visual_description" 必须逐字完全一致。
+- 不得改变年龄、脸型、肤色、发型、核心服装和标志性道具。
+- 场景变化只允许改变姿势、表情、镜头和环境，不得改变角色视觉身份。
+- 每个角色的 "visual_description" 必须包含锚点：年龄、面部特征、发型、服装、道具（如有）。
+
+风格：夸张、戏剧化、有反转的中国短剧喜剧风格。
+
+输出语言锁定（必须）：
+- 所有 scene 字段（title、visual_description、action、dialogue）必须使用中文。
+- 禁止混用英文或印尼语（品牌名/产品名除外）。
+
+重要：响应必须是合法 JSON：`
+  : `You are a professional Chinese comedy drama scriptwriter who is an expert in marketing. Create a 3-scene comedy drama script for product/business promotion.
 
 CHARACTER POLICY (MUST FOLLOW):
 1. If user requests a PUBLIC FIGURE character (celebrity, influencer, famous personality):
@@ -96,7 +243,17 @@ REQUIRED STRUCTURE (3 SCENES):
 2. SCENE 2 - CLIMAX: Conflict escalates dramatically and humorously  
 3. SCENE 3 - RESOLUTION & PROMOTION: Product appears as solution with strong promotion
 
+CHARACTER CONSISTENCY LOCK (MUST FOLLOW):
+- For the same recurring character across scenes 1-3, keep "name" and "visual_description" EXACTLY IDENTICAL (word-for-word).
+- Do not change age, face shape, skin tone, hairstyle, core outfit, or signature prop for the same character.
+- Scene changes may affect only pose, expression, camera framing, and environment; visual identity must remain fixed.
+- Each character "visual_description" must explicitly include these anchors: age, facial features, hair, outfit, and prop (if any).
+
 STYLE: Over-the-top Chinese drama, expressive, funny, with engaging plot twists.
+
+OUTPUT LANGUAGE LOCK (MUST FOLLOW):
+- All scene fields (title, visual_description, action, dialogue) MUST be in English.
+- Do not mix Indonesian/Chinese except for brand or product names.
 
 Important: Response MUST be valid JSON:`;
 
@@ -112,7 +269,7 @@ Important: Response MUST be valid JSON:`;
       "characters": [
         {
           "name": "Character Name",
-          "visual_description": "Detailed visual appearance: age, clothing, hairstyle, expression, physical features"
+          "visual_description": "ANCHOR LOCK (repeat exactly in all scenes for same character): age, facial features, skin tone, hairstyle, core outfit, signature prop"
         }
       ]
     },
@@ -142,26 +299,64 @@ Important: Response MUST be valid JSON:`;
 - Format video: 9:16 portrait untuk TikTok/Reels (bukan landscape)
 - Drama harus LUCU dan DRAMATIS seperti sinetron Cina
 - Setiap adegan harus memiliki minimal 1 karakter dengan deskripsi visual lengkap
+- Untuk karakter yang sama antar scene, field "name" dan "visual_description" HARUS sama persis (word-by-word)
+- Jangan mengganti identitas karakter (umur, wajah, warna kulit, rambut, outfit inti, properti signature) di scene 1-3
 - Dialog harus emosional dan ekspresif
 - Produk/bisnis harus dipromosikan di adegan 3 dengan jelas
 - Gunakan bahasa Indonesia yang natural dan engaging
-- REALISTIC PHOTOGRAPHY - Deskripsi visual HARUS mengikuti formula Subject + Visual Style + Composition + Lighting + Color + Technical. Gaya professional photography, photojournalistic, documentary realism. Komposisi medium shot, shallow depth of field, natural framing. Pencahayaan soft natural window light, realistic shadows. Warna natural palette, accurate skin tones. Teknis high resolution, sharp focus, 35mm aesthetic. ABSOLUT TIDAK BOLEH terlihat seperti illustration, painting, digital art, atau AI.`
-    : `Important Instructions:
+- REALISTIC PHOTOGRAPHY - Deskripsi visual HARUS mengikuti formula Subject + Visual Style + Composition + Lighting + Color + Technical. Gaya professional photography, photojournalistic, documentary realism. Komposisi medium shot, shallow depth of field, natural framing. Pencahayaan soft natural window light, realistic shadows. Warna natural palette, accurate skin tones. Teknis high resolution, sharp focus, 35mm aesthetic. ABSOLUT TIDAK BOLEH terlihat seperti illustration, painting, digital art, atau AI.
+- Gunakan bahasa yang sama dengan input user (Bahasa Indonesia).`
+  : language === 'zh'
+  ? `重要说明：
+- 视频比例：9:16 竖屏（TikTok/Reels），不是横屏
+- 剧情要有趣、戏剧化，符合中文短剧节奏
+- 每个场景至少有1个角色，并提供完整视觉描述
+- 同一角色跨场景时，"name" 和 "visual_description" 必须逐字一致
+- 不得改变角色核心身份（年龄、脸部、肤色、发型、核心服装、标志道具）
+- 对白要有情绪与表现力
+- 第3场景必须清晰展示产品/业务推广
+- 必须使用中文输出所有 scene 的 title/action/dialogue
+- 真实摄影风格：视觉描述遵循 Subject + Visual Style + Composition + Lighting + Color + Technical，禁止插画/动漫/数字绘画风格。`
+  : `Important Instructions:
 - Video format: 9:16 portrait for TikTok/Reels (not landscape)
 - Drama must be FUNNY and DRAMATIC like Chinese soap operas
 - Each scene must have at least 1 character with complete visual description
+- For recurring characters across scenes, "name" and "visual_description" MUST be exactly identical (word-by-word)
+- Never change character identity (age, face, skin tone, hair, core outfit, signature prop) across scenes 1-3
 - Dialogue should be emotional and expressive
 - Product/business must be promoted clearly in scene 3
 - Use natural and engaging English
-- REALISTIC PHOTOGRAPHY - Visual descriptions MUST follow formula Subject + Visual Style + Composition + Lighting + Color + Technical. Style professional photography, photojournalistic, documentary realism. Composition medium shot, shallow depth of field, natural framing. Lighting soft natural window light, realistic shadows. Color natural palette, accurate skin tones. Technical high resolution, sharp focus, 35mm aesthetic. ABSOLUTELY MUST NOT look like illustration, painting, digital art, or AI.`;
+- REALISTIC PHOTOGRAPHY - Visual descriptions MUST follow formula Subject + Visual Style + Composition + Lighting + Color + Technical. Style professional photography, photojournalistic, documentary realism. Composition medium shot, shallow depth of field, natural framing. Lighting soft natural window light, realistic shadows. Color natural palette, accurate skin tones. Technical high resolution, sharp focus, 35mm aesthetic. ABSOLUTELY MUST NOT look like illustration, painting, digital art, or AI.
+- Use the same language as user input (English).`;
 
   return basePrompt + '\n\n' + jsonStructure + '\n' + instructions;
 }
 
-function buildPrompt(input: string, language: 'id' | 'en', imageBase64?: string): string {
+function buildPrompt(
+  input: string,
+  language: 'id' | 'en' | 'zh',
+  imageBase64?: string,
+  referenceImages?: ReferenceImageMeta[]
+): string {
   const basePrompt = language === 'id' 
     ? `Buat naskah drama komedi 3 adegan untuk promosi berdasarkan input berikut: "${input}"`
+    : language === 'zh'
+    ? `请基于以下输入创作3个场景的喜剧推广短剧："${input}"`
     : `Create a 3-scene comedy drama for promotion based on this input: "${input}"`;
+
+  let referenceTypeContext = '';
+  if (referenceImages && referenceImages.length > 0) {
+    const lines = referenceImages.map((item, idx) => {
+      const summary = item.summary ? ` - ${item.summary}` : '';
+      return `${idx + 1}. ${item.type}${summary}`;
+    }).join('\n');
+
+    referenceTypeContext = language === 'id'
+      ? `\n\nHASIL DETEKSI TIPE GAMBAR REFERENSI (gunakan sebagai konteks wajib):\n${lines}`
+      : language === 'zh'
+      ? `\n\n参考图像类型检测结果（必须作为剧情上下文）：\n${lines}`
+      : `\n\nREFERENCE IMAGE TYPE DETECTION (must be used as context):\n${lines}`;
+  }
 
   if (imageBase64) {
     const imageContext = language === 'id'
@@ -171,19 +366,30 @@ function buildPrompt(input: string, language: 'id' | 'en', imageBase64?: string)
 - Foto latar/belakang lokasi
 - Kombinasi dari ketiganya
 
-Integrasikan elemen visual dari gambar ini ke dalam drama dengan cara yang natural dan kreatif. Produk/wajah/latar dari gambar harus muncul secara konsisten di adegan 3 (resolusi) sebagai fokus promosi.`
+Integrasikan elemen visual dari gambar ini ke dalam drama dengan cara yang natural dan kreatif. Produk/wajah/latar dari gambar harus muncul secara konsisten di adegan 3 (resolusi) sebagai fokus promosi.
+Jika gambar berisi wajah karakter, jadikan itu sebagai identity anchor dan pertahankan identik di ketiga scene (tanpa berubah).`
+  : language === 'zh'
+  ? `\n\n参考图片：你上传的图片可能是：
+- 要推广的产品图
+- 作为角色的人脸图
+- 场景背景/地点图
+- 以上组合
+
+请将图片中的视觉元素自然融入剧情。图片中的产品/人脸/背景应在第3场景中保持一致并作为推广重点。
+如果图片包含人脸，请将其作为固定身份锚点，并在3个场景中保持一致。`
       : `\n\nREFERENCE IMAGE: The uploaded image could be:
 - Product photo to be promoted
 - Person's face to be the character
 - Background/location setting
 - Combination of all three
 
-Integrate visual elements from this image into the drama naturally and creatively. The product/face/background from the image should appear consistently in scene 3 (resolution) as the promotion focus.`;
+Integrate visual elements from this image into the drama naturally and creatively. The product/face/background from this image should appear consistently in scene 3 (resolution) as the promotion focus.
+If the image contains a person face, treat it as a fixed identity anchor and keep it identical across all 3 scenes.`;
     
-    return basePrompt + imageContext;
+    return basePrompt + imageContext + referenceTypeContext;
   }
 
-  return basePrompt;
+  return basePrompt + referenceTypeContext;
 }
 
 function parseScriptResponse(content: string): Scene[] {
@@ -240,7 +446,7 @@ function parseScriptResponse(content: string): Scene[] {
 
 export async function mockGenerateScript(
   input: string,
-  language: 'id' | 'en'
+  language: 'id' | 'en' | 'zh'
 ): Promise<Scene[]> {
   await new Promise(resolve => setTimeout(resolve, 2000));
   

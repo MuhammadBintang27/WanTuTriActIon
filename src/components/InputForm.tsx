@@ -27,7 +27,7 @@ interface InputFormProps {
     useOwnScript: 'Use your own script instead',
   },
   id: {
-    title: 'CREATE AI DRAMATIC CONTENT',
+    title: 'BUAT KONTEN AI DRAMATIS',
     inputPlaceholder: 'Ketik ide Anda......',
     referenceImage: 'Gambar referensi:',
     referenceTypes: 'Produk / Wajah / Latar belakang',
@@ -38,7 +38,7 @@ interface InputFormProps {
     useOwnScript: 'Gunakan script Anda sendiri',
   },
   zh: {
-    title: 'CREATE AI DRAMATIC CONTENT',
+    title: '创建戏剧性AI内容',
     inputPlaceholder: '输入您的想法......',
     referenceImage: '参考图片：',
     referenceTypes: '产品 / 人脸 / 背景',
@@ -126,20 +126,11 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex items-center justify-between mb-12"
+          className="mb-16 md:mb-20"
         >
-          <h2 className="text-5xl md:text-6xl font-black text-black">
+          <h2 className="font-integral-cf text-5xl md:text-6xl font-black text-black leading-tight max-w-full md:max-w-[62%]">
             {t.title}
           </h2>
-          <div className="hidden md:block">
-            <Image
-              src="/image/robothand.png"
-              alt="AI Robot"
-              width={200}
-              height={200}
-              className="object-contain"
-            />
-          </div>
         </motion.div>
 
         {/* Input Form */}
@@ -148,8 +139,18 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl border-2 border-gray-200 overflow-hidden shadow-sm"
+          className="relative bg-white rounded-3xl border-2 border-gray-200 overflow-visible shadow-sm"
         >
+          <div className="hidden md:block absolute -top-73 -right-1 pointer-events-none">
+            <Image
+              src="/image/robotThink.png"
+              alt="AI Robot"
+              width={320}
+              height={320}
+              className="object-contain"
+            />
+            </div>
+
           <div className="p-4">
             {/* Main input row with icons inside */}
             <div className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl">
