@@ -23,14 +23,19 @@ export function buildImagePrompt(
   // Extract character descriptions
   const characterDesc = characters.map(c => c.visual_description).join('; ');
   
-  // Build the enhanced prompt with strong prompt engineering formula
-  // These technical enhancements are added automatically in the backend
-  // and NOT shown to the user in Step 2
-  const technicalEnhancements = '[9:16 Portrait Format for TikTok/Reels] + [Professional Commercial Photography] + [Cinematic Studio Lighting with Soft Key Light and Rim Light] + [Shot on Canon EOS R5, 85mm f/1.4 Lens, Shallow Depth of Field] + [Ultra-Realistic, 8K Resolution, Photorealistic, Sharp Focus, Smooth Skin Texture] + [Chinese Drama Style, Over-the-Top Expressive, Marketing Ready]';
+  // PROFESSIONAL PHOTOGRAPHY PROMPT FORMULA - 100% REALISTIC
+  // [Subject] + [Visual Style] + [Composition] + [Lighting] + [Color] + [Technical]
   
-  const enhancedPrompt = `${technicalEnhancements} + [${characterDesc}] + [${action}] + [${sceneDescription}]`;
+  const subject = `${characterDesc}, ${action}, ${sceneDescription}`;
+  const visualStyle = 'professional photography, photojournalistic style, documentary realism, candid moment capture';
+  const composition = 'medium shot with shallow depth of field, natural framing, rule of thirds, environmental context visible';
+  const lighting = 'soft natural window lighting with gentle shadows, realistic light falloff, practical light sources only';
+  const color = 'natural color palette, accurate skin tones, realistic saturation, no color grading artifacts';
+  const technical = 'high resolution, sharp focus on subject, natural bokeh, realistic texture detail, 35mm photography aesthetic';
   
-  return enhancedPrompt;
+  const realisticPrompt = `${subject}, ${visualStyle}, ${composition}, ${lighting}, ${color}, ${technical}`.trim();
+  
+  return realisticPrompt;
 }
 
 export async function generateImage(
@@ -72,7 +77,7 @@ export async function generateImage(
           ]
         },
         parameters: {
-          negative_prompt: 'cartoon, anime, illustration, painting, drawing, low quality, blurry, distorted faces, extra limbs, deformed hands',
+          negative_prompt: 'illustration, painting, drawing, cartoon, anime, CGI, 3D render, digital art, synthetic, plastic skin, doll-like, uncanny valley, oversaturated, oversharpened, artificial lighting, flat lighting, video game, computer generated, fake, unrealistic proportions, smooth plastic, wax figure, mannequin, doll face, anime eyes, cartoonish, digital painting, vector art, clipart, stock photo, overly perfect, Instagram filter, beauty filter, airbrushed, plastic surgery look, green screen, chroma key, composited, fake shadows, artificial colors, AI artifacts, watermark, text, logo',
           prompt_extend: true,
           watermark: false,
           n: 1,
@@ -153,7 +158,7 @@ export async function generateVideo(
   imageUrl: string,
   action: string,
   dialogue: string,
-  duration: number = 5,
+  duration: number = 2,
   referenceImageBase64?: string
 ): Promise<string> {
   // Rate limiting
@@ -169,7 +174,7 @@ export async function generateVideo(
   // Add buffer for action completion
   const wordCount = dialogue.split(/\s+/).filter(w => w.length > 0).length;
   const estimatedDuration = Math.ceil((wordCount / 2) + 2); // +2 seconds buffer for action
-  const finalDuration = Math.min(Math.max(estimatedDuration, 5), 10); // Min 5s, Max 10s
+  const finalDuration = Math.min(Math.max(estimatedDuration, 2), 3); // Min 5s, Max 10s
   
   return retryWithBackoff(async () => {
     // Build prompt that aligns video motion with action and dialogue

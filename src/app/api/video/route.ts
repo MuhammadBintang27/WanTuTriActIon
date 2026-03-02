@@ -70,14 +70,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Merge all videos
+    // Return individual video URLs - frontend will merge them client-side
     const sortedUrls = videoUrls.sort((a, b) => a.sceneIndex - b.sceneIndex).map(v => v.url);
-    const finalVideoUrls = await mergeVideos(sortedUrls);
     
     return NextResponse.json({
       success: true,
       data: {
-        videoUrls: finalVideoUrls,
+        videoUrls: sortedUrls,
         stage: 'completed',
       },
     });

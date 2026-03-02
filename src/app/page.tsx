@@ -286,7 +286,17 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setVideoUrls(data.data.videoUrls);
+      
+      // Merge videos client-side using ffmpeg.wasm
+      if (data.data.videoUrls.length > 1) {
+        setStage('video_generation'); // Keep loading state while merging
+        const { mergeVideosClientSide } = await import('@/lib/videoMerge');
+        const mergedUrl = await mergeVideosClientSide(data.data.videoUrls);
+        setVideoUrls([mergedUrl]);
+      } else {
+        setVideoUrls(data.data.videoUrls);
+      }
+      
       setStage('completed');
     } catch (err: any) {
       setError(err.message || 'An error occurred while generating video');
@@ -437,11 +447,12 @@ export default function Home() {
                 </p>
               </div>
               
-              {videoUrls.map((videoUrl, index) => (
-                <div key={index} className="space-y-6">
+              {/* Show single merged video */}
+              {videoUrls.length > 0 && (
+                <div className="space-y-6">
                   <div className="bg-gray-100 rounded-2xl p-2 shadow-xl mx-auto w-fit">
                     <div className="w-full max-w-sm mx-auto">
-                      <VideoPlayer videoUrl={videoUrl} />
+                      <VideoPlayer videoUrl={videoUrls[0]} />
                     </div>
                   </div>
                   
@@ -453,7 +464,7 @@ export default function Home() {
                       Regenerate
                     </button>
                     <a
-                      href={videoUrl}
+                      href={videoUrls[0]}
                       download="wantutri-video.mp4"
                       className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors duration-300"
                     >
@@ -461,7 +472,7 @@ export default function Home() {
                     </a>
                   </div>
                 </div>
-              ))}
+              )}
             </motion.div>
           </div>
         </section>
