@@ -12,6 +12,7 @@ import ScriptEditor from '@/components/ScriptEditor';
 import ImageReview from '@/components/ImageReview';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import Footer from '@/components/Footer';
 import { GenerationStage, ReferenceImageMeta, Scene, SceneType } from '@/types';
 import { detectLanguage } from '@/lib/utils';
 
@@ -73,25 +74,6 @@ export default function Home() {
   } as const;
 
   const nav = navTranslations[uiLang];
-
-  const partnerLogos: Array<{
-    src: string;
-    alt: string;
-    width: number;
-    cardClassName?: string;
-    imageClassName?: string;
-  }> = [
-    { src: '/image/Alibaba_Cloud_Logo.png', alt: 'Alibaba Cloud', width: 120 },
-    { src: '/image/Logo_Qwen.png', alt: 'Qwen', width: 90 },
-    { src: '/image/Logo_Wan.png', alt: 'Wan', width: 90 },
-    {
-      src: '/image/Logo_BluePower.png',
-      alt: 'BluePower',
-      width: 120,
-      cardClassName: 'px-3',
-      imageClassName: 'h-7 w-auto object-contain',
-    },
-  ];
 
   // Handler: Submit input form and generate script
   const handleInputSubmit = async (prompt: string, images: string[]) => {
@@ -580,86 +562,7 @@ export default function Home() {
 
       <HowItWorks uiLang={uiLang} />
 
-      {/* Footer */}
-      <footer className="py-16 bg-gray-100 border-t border-gray-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 items-start">
-            {/* Column 1: About */}
-            <div className="md:col-span-3">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                WanTuTri AI
-              </h3>
-              <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                AI-powered platform to turn ideas into cinematic scripts and ready-to-generate video content.
-              </p>
-            </div>
-
-            {/* Column 2: Features */}
-            <div className="md:col-span-2">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Features
-              </h3>
-              <ul className="space-y-2 text-gray-600 text-sm">
-                <li>AI Script Generator</li>
-                <li>Scene Breakdown</li>
-                <li>Visual Prompts</li>
-                <li>Video Generator</li>
-              </ul>
-            </div>
-
-            {/* Column 3: Contact */}
-            <div className="md:col-span-2 md:pl-3">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Contact
-              </h3>
-              <ul className="space-y-2 text-gray-600 text-sm">
-                <li className="whitespace-nowrap">Email: Geutanyoe@gmail.com</li>
-                <li>Available 24/7</li>
-              </ul>
-            </div>
-
-            {/* Column 4: Powered By */}
-            <div className="md:col-span-5 md:flex md:flex-col md:items-end md:text-right">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Powered by
-              </h3>
-              <p className="text-gray-500 text-sm mb-4">
-                Supported by our technology partners
-              </p>
-
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white/70 p-3 w-full md:max-w-[520px] md:ml-auto">
-                <motion.div
-                  className="flex w-max items-center gap-3"
-                  animate={{ x: ['0%', '-50%'] }}
-                  transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-                >
-                  {[...partnerLogos, ...partnerLogos].map((logo, index) => (
-                    <div
-                      key={`${logo.alt}-${index}`}
-                      className={`h-12 px-4 rounded-xl border border-gray-200 bg-white flex items-center justify-center ${logo.cardClassName ?? ''}`}
-                    >
-                      <Image
-                        src={logo.src}
-                        alt={logo.alt}
-                        width={logo.width}
-                        height={26}
-                        className={logo.imageClassName ?? 'h-6 w-auto object-contain'}
-                      />
-                    </div>
-                  ))}
-                </motion.div>
-              </div>
-            </div>
-          </div>
-
-          {/* Copyright */}
-          <div className="pt-8 border-t border-gray-300">
-            <p className="text-center text-gray-500 text-sm">
-              © 2026 WanTuTri AI. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer uiLang={uiLang} />
     </main>
   );
 }
