@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import Image from 'next/image';
 
 interface HowItWorksProps {
   uiLang: 'en' | 'id' | 'zh';
@@ -94,7 +93,7 @@ export default function HowItWorks({ uiLang }: HowItWorksProps) {
 
   return (
     <section id="how-it-works" className="relative h-screen flex flex-col justify-center bg-gray-50 overflow-hidden py-12">
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         
         {/* Sparkle icon - top right */}
         <motion.div
