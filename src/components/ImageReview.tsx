@@ -239,10 +239,8 @@ export default function ImageReview({
                         alt={`Scene ${index + 1}: ${scene.title}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.error('Image failed to load:', scene.imageUrl);
                           (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640"%3E%3Crect width="360" height="640" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="16" fill="%23ef4444" text-anchor="middle" dominant-baseline="middle"%3EImage Load Failed%3C/text%3E%3C/svg%3E';
                         }}
-                        onLoad={() => console.log('Image loaded successfully:', scene.imageUrl)}
                       />
                     </div>
                   ) : (

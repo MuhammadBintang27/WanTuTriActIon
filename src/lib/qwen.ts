@@ -441,7 +441,6 @@ function parseScriptResponse(content: string): Scene[] {
     
     return parsed.scenes;
   } catch (error) {
-    console.error('Failed to parse script response:', error);
     // Re-throw the original error if it's already a sensitive character error
     if (error instanceof Error && error.message.includes('SENSITIVE_CHARACTER_DETECTED')) {
       throw error;

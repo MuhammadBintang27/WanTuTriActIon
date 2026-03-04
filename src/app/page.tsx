@@ -230,13 +230,11 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log('Image API response:', data);
       
       // Update scenes with image URLs - data.data.imageUrls is array of {url, sceneIndex}
       const imageUrlsMap = new Map<number, string>(
         data.data.imageUrls.map((item: any) => [item.sceneIndex, item.url])
       );
-      console.log('Image URLs map:', Array.from(imageUrlsMap.entries()));
       
       setScenes((prev) =>
         prev.map((scene, index) => ({
@@ -291,8 +289,6 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log('Regenerate image API response:', data);
-      console.log('New image URL:', data.data.imageUrl);
 
       // Update the specific scene with new image
       setScenes((prev) =>

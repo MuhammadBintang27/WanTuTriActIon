@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Image generation error:', error);
     return NextResponse.json(
       { 
         success: false, 

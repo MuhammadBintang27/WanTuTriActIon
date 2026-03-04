@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Script generation error:', error);
-    
     // Handle sensitive character detection
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     

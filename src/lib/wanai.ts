@@ -98,12 +98,10 @@ export async function generateImage(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Image API Error Response:', errorText);
       throw new Error(`Wan AI Image API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('Image API Response:', JSON.stringify(data, null, 2));
     
     // Extract image URL from response - try multiple formats
     const imageUrl = 
@@ -111,7 +109,6 @@ export async function generateImage(
       data.output?.results?.[0]?.url;
     
     if (!imageUrl) {
-      console.error('Unexpected response structure:', JSON.stringify(data, null, 2));
       throw new Error('No image URL received from Wan AI API');
     }
 
@@ -135,7 +132,6 @@ async function pollImageTask(taskId: string, maxAttempts: number = 30): Promise<
     }
 
     const data = await response.json();
-    console.log(`Image Task Poll (attempt ${attempt + 1}):`, JSON.stringify(data, null, 2));
     
     const status = data.output?.task_status;
     
@@ -143,7 +139,6 @@ async function pollImageTask(taskId: string, maxAttempts: number = 30): Promise<
       // Extract image URL from results array
       const imageUrl = data.output?.results?.[0]?.url;
       if (imageUrl) {
-        console.log('Image generation succeeded! URL:', imageUrl);
         return imageUrl;
       }
       throw new Error('Image task succeeded but no URL found');
@@ -154,7 +149,6 @@ async function pollImageTask(taskId: string, maxAttempts: number = 30): Promise<
     }
     
     // Continue polling if status is PENDING or RUNNING
-    console.log(`Image task status: ${status}, polling again...`);
   }
   
   throw new Error('Image generation timed out');
@@ -322,16 +316,12 @@ async function pollVideoTask(taskId: string, maxAttempts: number = 60): Promise<
 
     const data = await response.json();
     
-    // Debug: log the response structure
-    console.log(`Video Task Poll (attempt ${attempt + 1}):`, JSON.stringify(data, null, 2));
-    
     const status = data.output?.task_status;
     
     if (status === 'SUCCEEDED') {
       // Video URL is at output.video_url
       const videoUrl = data.output?.video_url;
       if (videoUrl) {
-        console.log('Video generation succeeded! URL:', videoUrl);
         return videoUrl;
       }
       throw new Error('Video task succeeded but no URL found');
@@ -342,7 +332,6 @@ async function pollVideoTask(taskId: string, maxAttempts: number = 60): Promise<
     }
     
     // Continue polling if status is PENDING or RUNNING
-    console.log(`Video task status: ${status}, polling again...`);
   }
   
   throw new Error('Video generation timed out');

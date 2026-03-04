@@ -65,7 +65,7 @@ export function VideoPlayer({ videoUrl, className, onEnded }: VideoPlayerProps) 
           url: videoUrl,
         });
       } catch (error) {
-        console.log('Share cancelled');
+        // Share cancelled or failed
       }
     } else {
       navigator.clipboard.writeText(videoUrl);

@@ -81,10 +81,9 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
 
       try {
         const base64 = await fileToBase64(file);
-        console.log(`Image ${i + 1} uploaded successfully, data URL length:`, base64.length);
         validImages.push(base64);
       } catch (err) {
-        console.error('Error uploading image:', err);
+        // Error uploading image
       }
     }
 

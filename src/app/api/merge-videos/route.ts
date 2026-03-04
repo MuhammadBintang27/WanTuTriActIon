@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
     
-    console.error('Video merge error:', error);
     return NextResponse.json(
       { 
         success: false, 
