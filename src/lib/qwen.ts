@@ -122,12 +122,52 @@ export async function classifyReferenceImages(
 
 function buildReferenceClassifierPrompt(language: 'id' | 'en' | 'zh'): string {
   if (language === 'id') {
-    return 'Klasifikasikan gambar ini untuk produksi video 3 scene. Pilih satu type: product (fokus produk), character (fokus wajah/orang), background (fokus tempat/latar), mixed (campuran), unknown. Jika product/mixed, ringkasan WAJIB detail visual produk: kategori produk, bentuk kemasan, warna asli produk, teks/logo/brand yang terlihat, layout label, material/finishing. Kembalikan JSON saja: {"type":"...","summary":"...","confidence":0-1}.';
+    return `Klasifikasikan gambar ini untuk produksi video 3 scene. Pilih satu type: product (fokus produk), character (fokus wajah/orang), background (fokus tempat/latar), mixed (campuran), unknown.
+
+Jika type adalah product atau mixed, summary WAJIB mencakup SEMUA detail berikut secara eksplisit:
+1. KATEGORI PRODUK: jenis produk (skincare, minuman, suplemen, dll)
+2. BENTUK KEMASAN: bentuk botol/kotak/sachet/tube — deskripsikan geometri spesifik (silinder ramping, kotak persegi, botol pump, dll)
+3. WARNA DOMINAN: sebutkan warna TEPAT dengan nama warna spesifik (contoh: putih krem, biru navy, merah marun, hijau sage) — BUKAN hanya "putih" atau "biru"
+4. WARNA SEKUNDER: warna teks, warna label, warna tutup/cap
+5. LOGO/BRAND: teks brand atau logo yang terlihat (tuliskan persis)
+6. LAYOUT LABEL: posisi dan susunan elemen di kemasan
+7. MATERIAL/FINISH: glossy, matte, frosted, metalik, transparan, dll
+8. UKURAN RELATIF: besar/sedang/kecil dibandingkan tangan manusia (jika bisa diperkirakan)
+
+Contoh summary yang BAIK: "Botol skincare silinder ramping, warna putih krem glossy, tutup silver metalik, label minimalis dengan teks brand GLOW X berwarna emas di tengah, label sekunder hitam di bawah, finish glossy premium, ukuran sedang (seukuran telapak tangan)"
+
+Kembalikan JSON saja: {"type":"...","summary":"...","confidence":0-1}.`;
   }
   if (language === 'zh') {
-    return '请将该图片分类为以下之一：product（产品为主）、character（人物/人脸为主）、background（场景背景为主）、mixed（混合）、unknown（不明确）。若为product/mixed，summary必须包含产品视觉锚点：品类、包装形状、主色、可见logo/品牌文字、标签布局、材质/表面质感。只返回JSON：{"type":"...","summary":"...","confidence":0-1}。';
+    return `将该图片分类为：product（产品为主）、character（人物/人脸为主）、background（场景背景为主）、mixed（混合）、unknown（不明确）。
+
+若type为product或mixed，summary必须包含以下所有细节：
+1. 产品类别：护肤品/饮料/保健品等
+2. 包装形状：具体几何形状（细长圆柱/方形/泵瓶/管状等）
+3. 主色调：使用精确颜色名称（奶白色、深海蓝、酒红色、雾霾绿等）——不能只写"白色"或"蓝色"
+4. 辅助颜色：文字颜色、标签颜色、瓶盖颜色
+5. LOGO/品牌：可见品牌文字或标志（原样写出）
+6. 标签布局：包装上各元素的位置排列
+7. 材质/表面：光泽/哑光/磨砂/金属/透明等
+8. 相对尺寸：与人手相比的大小（如可判断）
+
+只返回JSON：{"type":"...","summary":"...","confidence":0-1}。`;
   }
-  return 'Classify this image for 3-scene video production into one type: product (product-focused), character (person/face-focused), background (location-focused), mixed, or unknown. If type is product/mixed, summary MUST include visual anchors: product category, packaging shape, exact product colors, visible logo/brand text, label layout, material/finish. Return JSON only: {"type":"...","summary":"...","confidence":0-1}.';
+  return `Classify this image for 3-scene video production into one type: product (product-focused), character (person/face-focused), background (location-focused), mixed, or unknown.
+
+If type is product or mixed, summary MUST include ALL of the following explicitly:
+1. PRODUCT CATEGORY: type of product (skincare, beverage, supplement, etc.)
+2. PACKAGING SHAPE: specific geometry (slim cylinder, square box, pump bottle, tube, sachet, etc.)
+3. DOMINANT COLOR: use precise, specific color names (creamy white, navy blue, burgundy red, sage green) — NOT just "white" or "blue"
+4. SECONDARY COLORS: text color, label color, cap/lid color
+5. LOGO/BRAND: visible brand name or logo text (write exactly as seen)
+6. LABEL LAYOUT: position and arrangement of elements on the packaging
+7. MATERIAL/FINISH: glossy, matte, frosted, metallic, transparent, etc.
+8. RELATIVE SIZE: small/medium/large compared to a human hand (if estimable)
+
+Example of GOOD summary: "Slim cylindrical skincare bottle, creamy white glossy finish, silver metallic cap, minimalist label with gold GLOW X brand text centered, secondary black label below, premium glossy finish, medium size (palm-sized)"
+
+Return JSON only: {"type":"...","summary":"...","confidence":0-1}.`;
 }
 
 function parseReferenceClassifierResponse(content: string): Omit<ReferenceImageMeta, 'image'> {
@@ -186,6 +226,15 @@ KUNCI KONSISTENSI KARAKTER (WAJIB DIPATUHI):
 - Jika ada perubahan adegan, hanya ubah pose, ekspresi, kamera, dan lingkungan; JANGAN ubah identitas visual karakter.
 - Setiap "visual_description" karakter wajib memuat anchor ini secara eksplisit: usia, fitur wajah, rambut, outfit, properti (jika ada).
 
+KUNCI VISUAL PRODUK 1:1 (WAJIB DIPATUHI — TERUTAMA ADEGAN 3):
+- Jika ada gambar referensi produk, semua scene yang menampilkan produk WAJIB mendeskripsikan produk secara TEPAT 1:1 dengan aslinya.
+- Warna produk: gunakan nama warna SPESIFIK yang sama persis (contoh: "putih krem glossy" bukan "putih").
+- Bentuk kemasan: deskripsikan geometri persis (contoh: "botol silinder ramping" bukan "botol").
+- Logo/brand: tuliskan teks brand persis seperti terlihat di gambar.
+- Finish/material: sebutkan (glossy, matte, frosted, metalik) sesuai gambar.
+- Di adegan 3 (resolusi), produk HARUS tampil sebagai hero shot dengan deskripsi lengkap seperti di atas.
+- DILARANG mengganti warna/bentuk/logo produk menjadi generik atau berbeda dari referensi.
+
 GAYA: Drama Cina yang over-the-top, ekspresif, lucu, dengan plot twist yang menarik.
 
 KUNCI BAHASA OUTPUT (WAJIB):
@@ -218,6 +267,15 @@ Penting: Respons HARUS dalam format JSON yang valid:`
 - 场景变化只允许改变姿势、表情、镜头和环境，不得改变角色视觉身份。
 - 每个角色的 "visual_description" 必须包含锚点：年龄、面部特征、发型、服装、道具（如有）。
 
+产品视觉1:1锁定（必须遵守——尤其是场景3）：
+- 如有产品参考图，所有出现产品的场景必须1:1还原产品外观。
+- 产品颜色：使用精确颜色名（如"奶白色光泽面"而非"白色"）。
+- 包装形状：描述具体几何形状（如"细长圆柱形泵瓶"而非"瓶子"）。
+- Logo/品牌：原样写出参考图中可见的品牌文字。
+- 材质/表面：注明光泽/哑光/磨砂/金属质感。
+- 场景3中，产品必须以"主角镜头"展示，包含上述完整描述。
+- 禁止将产品颜色/形状/Logo改成与参考图不同的样子。
+
 风格：夸张、戏剧化、有反转的中国短剧喜剧风格。
 
 输出语言锁定（必须）：
@@ -248,6 +306,15 @@ CHARACTER CONSISTENCY LOCK (MUST FOLLOW):
 - Do not change age, face shape, skin tone, hairstyle, core outfit, or signature prop for the same character.
 - Scene changes may affect only pose, expression, camera framing, and environment; visual identity must remain fixed.
 - Each character "visual_description" must explicitly include these anchors: age, facial features, hair, outfit, and prop (if any).
+
+PRODUCT VISUAL 1:1 LOCK (MUST FOLLOW — ESPECIALLY SCENE 3):
+- If a product reference image is provided, every scene showing the product MUST describe it 1:1 exactly as it appears in the reference.
+- Product color: use SPECIFIC color names that match exactly (e.g. "creamy white glossy" NOT "white", "midnight navy blue" NOT "blue").
+- Packaging shape: describe precise geometry (e.g. "slim cylindrical pump bottle" NOT just "bottle").
+- Logo/brand: write the brand text exactly as visible in the reference image.
+- Finish/material: specify (glossy, matte, frosted, metallic) matching the reference.
+- In scene 3 (resolution), the product MUST appear as the HERO SHOT with the full specific description above.
+- NEVER generalize or change the product color, shape, or logo from what is in the reference.
 
 STYLE: Over-the-top Chinese drama, expressive, funny, with engaging plot twists.
 
@@ -286,7 +353,7 @@ Important: Response MUST be valid JSON:`;
       "scene_number": 3,
       "scene_type": "resolution",
       "title": "Scene title with product promotion",
-      "visual_description": "[Subject]: [character with product], [confident action], [resolution setting]. [Visual Style]: professional photography, photojournalistic style, authentic moment. [Composition]: product-aware framing, shallow depth of field, natural positioning. [Lighting]: flattering natural lighting with realistic shadows. [Color]: natural vibrant palette, accurate skin tones, product colors true to life. [Technical]: high resolution, sharp focus, natural bokeh, 35mm photography aesthetic. NO illustration, painting, digital art, or AI look - MUST be photorealistic.",
+      "visual_description": "[Subject]: [character confidently holding THE PRODUCT — describe product with EXACT 1:1 details from reference: specific color name (e.g. creamy white glossy), exact packaging shape (e.g. slim cylindrical pump bottle), visible brand/logo text, finish (glossy/matte/metallic)], [action], [resolution setting]. [Visual Style]: professional product photography, photojournalistic, authentic moment. [Composition]: product hero shot framing — product clearly visible with accurate colors and shape, shallow depth of field. [Lighting]: flattering natural lighting that shows true product colors accurately. [Color]: natural palette with product colors reproduced TRUE TO LIFE — exact shade match to reference. [Technical]: high resolution, sharp focus on product details and person, natural bokeh, 35mm photography aesthetic. NO illustration, painting, digital art, or AI look - MUST be photorealistic.",
       "action": "Physical action showing product usage",
       "dialogue": "Promotional dialogue with call-to-action",
       "characters": [...]
@@ -346,16 +413,39 @@ function buildPrompt(
 
   let referenceTypeContext = '';
   if (referenceImages && referenceImages.length > 0) {
+    const productImages = referenceImages.filter(r => r.type === 'product' || r.type === 'mixed');
+    const otherImages = referenceImages.filter(r => r.type !== 'product' && r.type !== 'mixed');
+
     const lines = referenceImages.map((item, idx) => {
       const summary = item.summary ? ` - ${item.summary}` : '';
       return `${idx + 1}. ${item.type}${summary}`;
     }).join('\n');
 
+    // Build a strong product lock block if product images exist
+    let productLockBlock = '';
+    if (productImages.length > 0) {
+      const productAnchors = productImages.map((p, idx) => {
+        return `Product ${idx + 1}: ${p.summary}`;
+      }).join('\n');
+
+      productLockBlock = language === 'id'
+        ? `\n\nPRODUCT VISUAL LOCK — WAJIB DIPATUHI DI SEMUA SCENE:
+${productAnchors}
+INSTRUKSI: Setiap kali produk muncul dalam visual_description, WAJIB gunakan deskripsi di atas secara TEPAT 1:1. Jangan ganti warna, bentuk, atau logo. Gunakan nama warna spesifik persis seperti terdeteksi di atas.`
+        : language === 'zh'
+        ? `\n\n产品视觉锁定——所有场景必须遵守：
+${productAnchors}
+指令：每当产品出现在visual_description中，必须严格1:1使用上述描述。不得更改颜色、形状或Logo。使用与上述完全一致的精确颜色名称。`
+        : `\n\nPRODUCT VISUAL LOCK — MUST BE FOLLOWED IN ALL SCENES:
+${productAnchors}
+INSTRUCTION: Every time the product appears in a visual_description, you MUST use the exact description above 1:1. Do NOT change the color, shape, or logo. Use the precise color names exactly as detected above.`;
+    }
+
     referenceTypeContext = language === 'id'
-      ? `\n\nHASIL DETEKSI TIPE GAMBAR REFERENSI (gunakan sebagai konteks wajib):\n${lines}`
+      ? `\n\nHASIL DETEKSI TIPE GAMBAR REFERENSI (gunakan sebagai konteks wajib):\n${lines}${productLockBlock}`
       : language === 'zh'
-      ? `\n\n参考图像类型检测结果（必须作为剧情上下文）：\n${lines}`
-      : `\n\nREFERENCE IMAGE TYPE DETECTION (must be used as context):\n${lines}`;
+      ? `\n\n参考图像类型检测结果（必须作为剧情上下文）：\n${lines}${productLockBlock}`
+      : `\n\nREFERENCE IMAGE TYPE DETECTION (must be used as context):\n${lines}${productLockBlock}`;
   }
 
   if (imageBase64) {
