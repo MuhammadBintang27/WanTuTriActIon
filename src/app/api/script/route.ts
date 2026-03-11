@@ -41,6 +41,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Detect upstream API quota exhaustion (400 Bad Request)
+    if (errorMessage.includes('400') && errorMessage.includes('Bad Request')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'API quota has been exhausted. Please try again later.',
+          code: 'API_QUOTA_EXHAUSTED'
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { 
         success: false, 

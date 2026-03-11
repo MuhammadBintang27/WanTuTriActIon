@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Helper to detect quota exhaustion from upstream API errors
+    const isQuotaError = (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      return msg.includes('400') && msg.includes('Bad Request');
+    };
+
     // Generate images sequentially with delay for token efficiency
     const imageUrls: { url: string; sceneIndex: number }[] = [];
     
@@ -109,6 +115,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (isQuotaError(error)) {
+      return NextResponse.json(
+        { success: false, error: 'API quota has been exhausted. Please try again later.', code: 'API_QUOTA_EXHAUSTED' },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { 
         success: false, 
@@ -117,4 +129,3 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}

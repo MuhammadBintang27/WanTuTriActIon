@@ -37,6 +37,7 @@ export default function Home() {
   const [promptLang, setPromptLang] = useState<'id' | 'en' | 'zh'>('en');
   const [referenceImage, setReferenceImage] = useState<string>('');
   const [referenceImagesMeta, setReferenceImagesMeta] = useState<ReferenceImageMeta[]>([]);
+  const [isApiExhausted, setIsApiExhausted] = useState(false);
 
   const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -134,6 +135,11 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.code === 'API_QUOTA_EXHAUSTED') {
+          setIsApiExhausted(true);
+          setStage('idle');
+          return;
+        }
         throw new Error(errorData.error || 'Failed to generate script');
       }
 
@@ -226,6 +232,11 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.code === 'API_QUOTA_EXHAUSTED') {
+          setIsApiExhausted(true);
+          setStage('script_review');
+          return;
+        }
         throw new Error(errorData.error || 'Failed to generate images');
       }
 
@@ -285,6 +296,10 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.code === 'API_QUOTA_EXHAUSTED') {
+          setIsApiExhausted(true);
+          return;
+        }
         throw new Error(errorData.error || 'Failed to regenerate image');
       }
 
@@ -347,6 +362,11 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.code === 'API_QUOTA_EXHAUSTED') {
+          setIsApiExhausted(true);
+          setStage('image_review');
+          return;
+        }
         throw new Error(errorData.error || 'Failed to generate video');
       }
 
@@ -371,8 +391,87 @@ export default function Home() {
     }
   };
 
+  const quotaTexts = {
+    en: {
+      title: 'Service Temporarily Unavailable',
+      subtitle: 'API Quota Exhausted',
+      description: 'Our AI generation service has reached its daily usage limit. The API credits have been fully consumed for today.',
+      note: 'Please try again later when the quota resets. We appreciate your patience!',
+      button: 'Refresh Page',
+    },
+    id: {
+      title: 'Layanan Tidak Tersedia Sementara',
+      subtitle: 'Kuota API Habis',
+      description: 'Layanan AI kami telah mencapai batas penggunaan harian. Kredit API telah terpakai sepenuhnya untuk hari ini.',
+      note: 'Silakan coba lagi nanti saat kuota direset. Terima kasih atas kesabaran Anda!',
+      button: 'Muat Ulang Halaman',
+    },
+    zh: {
+      title: '服务暂时不可用',
+      subtitle: 'API 配额已用完',
+      description: '我们的AI生成服务已达到每日使用限制。今天的API额度已全部消耗。',
+      note: '请稍后在配额重置后重试。感谢您的耐心！',
+      button: '刷新页面',
+    },
+  } as const;
+
+  const qt = quotaTexts[uiLang];
+
   return (
     <main className="min-h-screen bg-white">
+      {/* API Quota Exhausted Overlay */}
+      {isApiExhausted && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 25 }}
+            className="relative w-full max-w-lg rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center"
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setIsApiExhausted(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Warning icon */}
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
+              {qt.title}
+            </h2>
+            <div className="inline-block rounded-full bg-orange-100 px-4 py-1 mb-4">
+              <span className="text-sm font-semibold text-orange-700">{qt.subtitle}</span>
+            </div>
+            <p className="text-gray-600 mb-3 leading-relaxed">
+              {qt.description}
+            </p>
+            <p className="text-gray-500 text-sm mb-8">
+              {qt.note}
+            </p>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-full hover:bg-gray-800 transition-colors duration-300"
+            >
+              {qt.button}
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
       {/* Header with Navigation */}
       <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12">
