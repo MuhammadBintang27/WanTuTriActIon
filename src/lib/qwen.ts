@@ -122,12 +122,12 @@ export async function classifyReferenceImages(
 
 function buildReferenceClassifierPrompt(language: 'id' | 'en' | 'zh'): string {
   if (language === 'id') {
-    return 'Klasifikasikan gambar ini untuk produksi video 3 scene. Pilih satu type: product (fokus produk), character (fokus wajah/orang), background (fokus tempat/latar), mixed (campuran), unknown. Jika product/mixed, ringkasan WAJIB detail visual produk: kategori produk, bentuk kemasan, warna dominan, teks/logo/brand yang terlihat, layout label, material/finishing. Kembalikan JSON saja: {"type":"...","summary":"...","confidence":0-1}.';
+    return 'Klasifikasikan gambar ini untuk produksi video 3 scene. Pilih satu type: product (fokus produk), character (fokus wajah/orang), background (fokus tempat/latar), mixed (campuran), unknown. Jika product/mixed, ringkasan WAJIB detail visual produk: kategori produk, bentuk kemasan, warna asli produk, teks/logo/brand yang terlihat, layout label, material/finishing. Kembalikan JSON saja: {"type":"...","summary":"...","confidence":0-1}.';
   }
   if (language === 'zh') {
     return '请将该图片分类为以下之一：product（产品为主）、character（人物/人脸为主）、background（场景背景为主）、mixed（混合）、unknown（不明确）。若为product/mixed，summary必须包含产品视觉锚点：品类、包装形状、主色、可见logo/品牌文字、标签布局、材质/表面质感。只返回JSON：{"type":"...","summary":"...","confidence":0-1}。';
   }
-  return 'Classify this image for 3-scene video production into one type: product (product-focused), character (person/face-focused), background (location-focused), mixed, or unknown. If type is product/mixed, summary MUST include visual anchors: product category, packaging shape, dominant colors, visible logo/brand text, label layout, material/finish. Return JSON only: {"type":"...","summary":"...","confidence":0-1}.';
+  return 'Classify this image for 3-scene video production into one type: product (product-focused), character (person/face-focused), background (location-focused), mixed, or unknown. If type is product/mixed, summary MUST include visual anchors: product category, packaging shape, exact product colors, visible logo/brand text, label layout, material/finish. Return JSON only: {"type":"...","summary":"...","confidence":0-1}.';
 }
 
 function parseReferenceClassifierResponse(content: string): Omit<ReferenceImageMeta, 'image'> {
@@ -441,6 +441,7 @@ function parseScriptResponse(content: string): Scene[] {
     
     return parsed.scenes;
   } catch (error) {
+    console.error('Failed to parse script response:', error);
     // Re-throw the original error if it's already a sensitive character error
     if (error instanceof Error && error.message.includes('SENSITIVE_CHARACTER_DETECTED')) {
       throw error;
