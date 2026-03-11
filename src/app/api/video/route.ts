@@ -19,6 +19,12 @@ interface VideoRequest {
 let lastCallTime = 0;
 const MIN_INTERVAL = 5000; // 5 seconds between video API calls
 
+// Helper to detect quota exhaustion from upstream API errors
+function isQuotaError(err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('400') && msg.includes('Bad Request');
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting check
@@ -37,12 +43,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Helper to detect quota exhaustion from upstream API errors
-    const isQuotaError = (err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      return msg.includes('400') && msg.includes('Bad Request');
-    };
 
     // Generate videos from images sequentially with action/dialogue context
     const videoUrls: { url: string; sceneIndex: number }[] = [];
@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
 
 function estimateSceneDuration(action: string, dialogue: string): number {
   const normalizedDialogue = dialogue

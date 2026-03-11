@@ -20,6 +20,12 @@ interface ImageRequest {
 let lastCallTime = 0;
 const MIN_INTERVAL = 1000; // 1 second between API calls
 
+// Helper to detect quota exhaustion from upstream API errors
+function isQuotaError(err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('400') && msg.includes('Bad Request');
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting check
@@ -39,12 +45,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Helper to detect quota exhaustion from upstream API errors
-    const isQuotaError = (err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      return msg.includes('400') && msg.includes('Bad Request');
-    };
 
     // Generate images sequentially with delay for token efficiency
     const imageUrls: { url: string; sceneIndex: number }[] = [];
@@ -129,3 +129,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
