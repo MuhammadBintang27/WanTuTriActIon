@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 interface BrandingBarProps {
   uiLang: 'en' | 'id' | 'zh';
@@ -21,31 +22,36 @@ const translations = {
 export default function BrandingBar({ uiLang }: BrandingBarProps) {
   const t = translations[uiLang];
 
-  // Duplicate text for seamless marquee
-  const marqueeText = Array(8).fill(`\u00A0\u00A0${t.text}\u00A0\u00A0`).join(' • ');
-
   return (
     <section className="py-6 bg-black border-y border-gray-800 overflow-hidden">
-      <div className="relative flex">
-        <motion.div
-          initial={{ x: 0 }}
-          animate={{ x: '-50%' }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-          className="flex items-center gap-6 whitespace-nowrap"
-        >
-          {Array(2).fill(marqueeText).map((text, i) => (
-            <div key={i} className="flex items-center gap-6">
-              <p className="font-integral-cf px-6 md:px-8 text-2xl md:text-3xl lg:text-4xl leading-none font-black text-white tracking-wider">
-                {text}
-              </p>
-            </div>
-          ))}
-        </motion.div>
-      </div>
+      <motion.div
+        initial={{ x: 0 }}
+        animate={{ x: '-50%' }}
+        transition={{
+          duration: 40,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+        className="flex w-max whitespace-nowrap"
+      >
+        {/* Two identical halves for a seamless loop; solid and outlined text alternate */}
+        {[0, 1].map((half) => (
+          <div key={half} className="flex shrink-0 items-center" aria-hidden={half === 1}>
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i} className="flex items-center">
+                <span
+                  className={`font-integral-cf px-8 text-2xl md:text-3xl lg:text-4xl leading-none font-black tracking-wider ${
+                    i % 2 ? 'text-transparent [-webkit-text-stroke:1.5px_white]' : 'text-white'
+                  }`}
+                >
+                  {t.text}
+                </span>
+                <Sparkles className="h-6 w-6 text-white" fill="currentColor" />
+              </span>
+            ))}
+          </div>
+        ))}
+      </motion.div>
     </section>
   );
 }

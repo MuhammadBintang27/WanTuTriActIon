@@ -118,8 +118,8 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
   };
 
   return (
-    <section id="input-section" className="h-screen flex flex-col justify-center bg-gradient-to-br from-gray-50 to-white py-12 lg:pt-0">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+    <section id="input-section" className="relative h-screen flex flex-col justify-center overflow-hidden bg-white py-12 lg:pt-0">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Title and Robot Image */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -138,8 +138,9 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className="relative bg-white rounded-3xl border-2 border-gray-200 overflow-visible shadow-sm"
+          className="glow-border rounded-3xl overflow-visible"
         >
+          <span className="glow-ring" aria-hidden />
           <div className="hidden md:block absolute -top-73 -right-1 pointer-events-none">
             <Image
               src="/image/robotThink.png"
@@ -150,9 +151,9 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
             />
             </div>
 
-          <div className="p-4">
+          <div className="p-3 bg-white rounded-[inherit] shadow-[0_30px_80px_-30px_rgb(0_0_0/0.3)]">
             {/* Main input row with icons inside */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl">
+            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-2xl transition-colors focus-within:bg-white">
               {/* Left Icons */}
               <input
                 ref={fileInputRef}
@@ -195,7 +196,7 @@ export default function InputForm({ uiLang, onSubmit, onUseOwnScript, isLoading,
                 whileTap={{ scale: isLoading ? 1 : 0.95 }}
                 onClick={handleSubmit}
                 disabled={isLoading || !prompt.trim()}
-                className="flex-shrink-0 w-12 h-12 bg-black hover:bg-gray-800 disabled:bg-gray-300 rounded-full flex items-center justify-center transition-colors disabled:shadow-none"
+                className="flex-shrink-0 w-12 h-12 bg-black hover:bg-gray-800 disabled:bg-gray-300 rounded-full flex items-center justify-center shadow-[0_10px_30px_-10px_rgb(0_0_0/0.6)] transition-colors disabled:shadow-none"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 text-white animate-spin" />

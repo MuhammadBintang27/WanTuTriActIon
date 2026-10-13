@@ -84,7 +84,7 @@ export default function Footer({ uiLang }: FooterProps) {
   const t = translations[uiLang];
 
   return (
-    <footer className="py-16 bg-gray-100 border-t border-gray-300">
+    <footer className="pt-16 pb-8 bg-white border-t border-gray-200 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 items-start">
           {/* Column 1: About */}
@@ -154,8 +154,13 @@ export default function Footer({ uiLang }: FooterProps) {
           </div>
         </div>
 
+        {/* Giant outlined wordmark */}
+        <p aria-hidden className="font-integral-cf text-outline-soft select-none whitespace-nowrap text-center text-[13vw] font-black leading-none mb-8">
+          WANTUTRI
+        </p>
+
         {/* Copyright */}
-        <div className="pt-8 border-t border-gray-300">
+        <div className="pt-8 border-t border-gray-200">
           <p className="text-center text-gray-500 text-sm">
             {t.copyright}
           </p>

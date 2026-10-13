@@ -472,86 +472,51 @@ export default function Home() {
           </motion.div>
         </motion.div>
       )}
-      {/* Header with Navigation */}
-      <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" onClick={handleLogoClick} className="flex items-center" aria-label="Go to home">
-              <Image
-                src="/image/LOGO.png"
-                alt="WanTuTri AI"
-                width={220}
-                height={56}
-                className="h-12 w-auto object-contain"
-                priority
-              />
-            </Link>
+      {/* Header with Navigation: floating glass pill */}
+      <header className="fixed inset-x-0 top-3 z-50 px-3 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border border-black/5 bg-white/95 pl-5 pr-2 shadow-[0_8px_30px_rgb(0_0_0/0.06)]">
+          {/* Logo */}
+          <Link href="/" onClick={handleLogoClick} className="flex items-center" aria-label="Go to home">
+            <Image
+              src="/image/LOGO.png"
+              alt="WanTuTri AI"
+              width={220}
+              height={56}
+              className="h-10 w-auto object-contain"
+              priority
+            />
+          </Link>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            {([[nav.home, undefined], [nav.features, 'input-section'], [nav.guide, 'how-it-works']] as const).map(([label, target]) => (
               <a
+                key={label}
                 href="/"
-                onClick={handleNavClick()}
-                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
+                onClick={handleNavClick(target)}
+                className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-950 hover:text-white"
               >
-                {nav.home}
+                {label}
               </a>
-              <a
-                href="/"
-                onClick={handleNavClick('input-section')}
-                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
-              >
-                {nav.features}
-              </a>
-              <a
-                href="/"
-                onClick={handleNavClick('how-it-works')}
-                className="relative px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200/80 transition-colors after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[#6A5EE5] after:transition-transform after:duration-300 hover:after:scale-x-100"
-              >
-                {nav.guide}
-              </a>
-            </nav>
+            ))}
+          </nav>
 
-            {/* Language Selector */}
-            <div className="flex items-center gap-2">
+          {/* Language Selector */}
+          <div className="flex items-center gap-1 rounded-full bg-gray-100 p-1">
+            {(['en', 'id', 'zh'] as const).map((lang) => (
               <button
-                onClick={() => setUiLang('en')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  uiLang === 'en'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                key={lang}
+                onClick={() => setUiLang(lang)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  uiLang === lang ? 'bg-gray-950 text-white shadow' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                EN
+                {lang === 'zh' ? '中文' : lang.toUpperCase()}
               </button>
-              <button
-                onClick={() => setUiLang('id')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  uiLang === 'id'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                ID
-              </button>
-              <button
-                onClick={() => setUiLang('zh')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  uiLang === 'zh'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                中文
-              </button>
-            </div>
+            ))}
           </div>
         </div>
       </header>
-
-      {/* Spacer for fixed header */}
-      <div className="h-16" />
 
       {/* Marketing Sections */}
       <HeroSection uiLang={uiLang} />

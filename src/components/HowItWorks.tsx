@@ -92,16 +92,16 @@ export default function HowItWorks({ uiLang }: HowItWorksProps) {
   const t = translations[uiLang];
 
   return (
-    <section id="how-it-works" className="relative h-screen flex flex-col justify-center bg-gray-50 overflow-hidden py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        
-        {/* Sparkle icon - top right */}
+    <section id="how-it-works" className="relative min-h-screen flex flex-col justify-center bg-white overflow-hidden py-24">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+
+        {/* Sparkle icon - top right, slowly spinning */}
         <motion.div
           initial={{ opacity: 0, scale: 0 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          whileInView={{ opacity: 1, scale: 1, rotate: 360 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="absolute right-8 top-12"
+          transition={{ duration: 0.5, delay: 0.3, rotate: { duration: 14, repeat: Infinity, ease: 'linear' } }}
+          className="absolute right-8 -top-10 hidden md:block"
         >
           <Sparkles className="w-16 h-16 text-gray-900" fill="currentColor" />
         </motion.div>
@@ -114,7 +114,7 @@ export default function HowItWorks({ uiLang }: HowItWorksProps) {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 relative z-10"
         >
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
+          <h2 className="font-integral-cf text-4xl md:text-5xl lg:text-6xl font-black text-gray-950 mb-4">
             {t.title}
           </h2>
           <p className="text-lg md:text-xl text-gray-500">
@@ -123,18 +123,19 @@ export default function HowItWorks({ uiLang }: HowItWorksProps) {
         </motion.div>
 
         {/* Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-8 lg:gap-12 max-w-7xl mx-auto relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto relative z-10">
           {t.steps.map((step, index) => (
             <motion.div
               key={step.number}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-              className="text-left"
+              transition={{ duration: 0.6, delay: index * 0.15 }}
+              whileHover={{ y: -10 }}
+              className="group text-left rounded-3xl border border-gray-200 bg-white  p-7 shadow-sm transition-shadow duration-300 hover:border-gray-950 hover:shadow-[0_30px_70px_-30px_rgb(0_0_0/0.45)]"
             >
-              {/* Large number */}
-              <div className="text-7xl md:text-8xl lg:text-9xl font-black text-gray-200 mb-4 leading-none">
+              {/* Large number: outlined, fills with the brand gradient on hover */}
+              <div className="step-number text-outline font-integral-cf text-7xl lg:text-8xl font-black mb-6 leading-none">
                 {step.number}
               </div>
 
